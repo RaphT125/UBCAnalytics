@@ -1,0 +1,17 @@
+{
+	"title": "invalid expected pass type",
+	"input": {
+		"WHERE": {
+			"GT": {
+				"sections_pass": "test"
+			}
+		},
+		"OPTIONS": {
+			"COLUMNS": [
+				"sections_title"
+			]
+		}
+	},
+	"errorExpected": true,
+	"expected": "InsightError"
+}

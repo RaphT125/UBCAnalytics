@@ -1,0 +1,17 @@
+{
+	"title": "invalid expected title type",
+	"input": {
+		"WHERE": {
+			"GT": {
+				"sections_title": 97
+			}
+		},
+		"OPTIONS": {
+			"COLUMNS": [
+				"sections_title"
+			]
+		}
+	},
+	"errorExpected": true,
+	"expected": "InsightError"
+}

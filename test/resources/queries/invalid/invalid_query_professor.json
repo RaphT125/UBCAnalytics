@@ -1,0 +1,17 @@
+{
+	"title": "invalid expected professor type",
+	"input": {
+		"WHERE": {
+			"IS": {
+				"sections_professor": 97
+			}
+		},
+		"OPTIONS": {
+			"COLUMNS": [
+				"sections_professor"
+			]
+		}
+	},
+	"errorExpected": true,
+	"expected": "InsightError"
+}

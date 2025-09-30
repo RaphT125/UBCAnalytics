@@ -1,0 +1,15 @@
+{
+	"title": "invalid empty column",
+	"input": {
+		"WHERE": {
+			"GT": {
+				"sections_avg": 60
+			}
+		},
+		"OPTIONS": {
+			"COLUMNS": []
+		}
+	},
+	"errorExpected": true,
+	"expected": "InsightError"
+}

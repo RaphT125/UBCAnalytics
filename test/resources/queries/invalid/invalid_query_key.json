@@ -1,0 +1,17 @@
+{
+	"title": "invalid key",
+	"input": {
+		"WHERE": {
+			"IS": {
+				"sections_abc": "test"
+			}
+		},
+		"OPTIONS": {
+			"COLUMNS": [
+				"sections_abc"
+			]
+		}
+	},
+	"errorExpected": true,
+	"expected": "InsightError"
+}

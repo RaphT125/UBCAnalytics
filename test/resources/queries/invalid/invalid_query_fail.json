@@ -1,0 +1,17 @@
+{
+	"title": "invalid expected fail type",
+	"input": {
+		"WHERE": {
+			"GT": {
+				"sections_fail": "test"
+			}
+		},
+		"OPTIONS": {
+			"COLUMNS": [
+				"sections_title"
+			]
+		}
+	},
+	"errorExpected": true,
+	"expected": "InsightError"
+}

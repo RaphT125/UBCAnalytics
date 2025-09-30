@@ -1,0 +1,21 @@
+{
+	"title": "Qurey not found",
+	"input": {
+		"WHERE": {
+			"IS": {
+				"sections_dept": "test"
+			}
+		},
+		"OPTIONS": {
+			"COLUMNS": [
+				"sections_title"
+			]
+		}
+	},
+	"errorExpected": false,
+	"expected": [
+		{
+			"sections_title": ""
+		}
+	]
+}

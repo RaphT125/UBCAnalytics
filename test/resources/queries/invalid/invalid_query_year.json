@@ -1,0 +1,17 @@
+{
+	"title": "invalid expected year type",
+	"input": {
+		"WHERE": {
+			"GT": {
+				"sections_year": "test"
+			}
+		},
+		"OPTIONS": {
+			"COLUMNS": [
+				"sections_title"
+			]
+		}
+	},
+	"errorExpected": true,
+	"expected": "InsightError"
+}

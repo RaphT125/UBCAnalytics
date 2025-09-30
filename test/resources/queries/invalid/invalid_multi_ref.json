@@ -1,0 +1,19 @@
+{
+	"title": "invalid multiple referenced dataset",
+	"input": {
+		"WHERE": {
+			"AND": [
+				{ "IS":{"sections_id": "cpsc"}},
+				{"GT": { "valid_avg": 50}
+				}
+			]
+		},
+		"OPTIONS": {
+			"COLUMNS": [
+				"sections_title"
+			]
+		}
+	},
+	"errorExpected": true,
+	"expected": "InsightError"
+}

@@ -1,0 +1,17 @@
+{
+	"title": "invalid expected avg type",
+	"input": {
+		"WHERE": {
+			"GT": {
+				"sections_avg": "test"
+			}
+		},
+		"OPTIONS": {
+			"COLUMNS": [
+				"sections_title"
+			]
+		}
+	},
+	"errorExpected": true,
+	"expected": "InsightError"
+}
