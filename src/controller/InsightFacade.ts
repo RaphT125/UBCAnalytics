@@ -77,7 +77,12 @@ export default class InsightFacade implements IInsightFacade {
 			const numberFiled = ["Year", "Avg", "Pass", "Fail", "Audit"];
 			const fileContent = files.map(async (file) => {
 				const jsonContent = await file.async("text");
-				const parsed = JSON.parse(jsonContent);
+				let parsed: any;
+				try {
+					parsed = JSON.parse(jsonContent);
+				} catch (e) {
+					return [];
+				}
 				if (!Array.isArray(parsed.result)) {
 					return [];
 				}
