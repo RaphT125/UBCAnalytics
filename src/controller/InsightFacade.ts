@@ -1,24 +1,48 @@
 import { IInsightFacade, InsightDataset, InsightDatasetKind, InsightError, InsightResult } from "./IInsightFacade";
 import JSZip from "jszip";
+import { promises as fsPromises } from "fs";
 /**
  * This is the main programmatic entry point for the project.
  * Method documentation is in IInsightFacade
  *
  */
+const directory = "./data";
 export default class InsightFacade implements IInsightFacade {
 	public async addDataset(id: string, content: string, kind: InsightDatasetKind): Promise<string[]> {
-		// TODO: Remove this once you implement the methods!
 		try {
+			id = id.trim();
 			const parsed = await Promise.all([this.fileParser(content), this.idAndSectionChecker(id, kind)]);
+			await this.writeFile(id, parsed);
 		} catch (e) {
 			throw new InsightError("file parsing error" + e);
 		}
 
 		return [id];
 	}
-	private async idAndSectionChecker(id: string, kind: InsightDatasetKind) {
-		if (id.trim() === "" || id.includes("_")) {
+
+	private async writeFile(id: string, data: any[]): Promise<void> {
+		try {
+			const fileDirect = directory + "/" + id;
+			await fsPromises.writeFile(fileDirect, JSON.stringify(data));
+		} catch (e) {
+			throw new InsightError();
+		}
+	}
+	private async duplicateID(id: string): Promise<boolean> {
+		const fileDirect = directory + "/" + id;
+		try {
+			fsPromises.access(fileDirect);
+			return true;
+		} catch (e) {
+			return false;
+		}
+	}
+	private async idAndSectionChecker(id: string, kind: InsightDatasetKind): Promise<void> {
+		if (id === "" || id.includes("_")) {
 			throw new InsightError(" id is invalid");
+		}
+		if (await this.duplicateID(id)) {
+			throw new InsightError(" id duplicate");
 		}
 
 		if (kind != "sections") {
