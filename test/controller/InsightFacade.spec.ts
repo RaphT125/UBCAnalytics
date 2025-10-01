@@ -58,6 +58,15 @@ describe("InsightFacade", function () {
 				expect.fail("An Error Should not have been thrown" + error);
 			}
 		});
+		it("should successfully add multiple dataset", async function () {
+			try {
+				await facade.addDataset("ubc", sections, InsightDatasetKind.Sections);
+				const result = await facade.addDataset("ubc2", sections, InsightDatasetKind.Sections);
+				expect(result).to.deep.equal(["ubc", "ubc2"]);
+			} catch (error) {
+				expect.fail("An Error Should not have been thrown" + error);
+			}
+		});
 		//bad input dataset
 		it("should reject repeats same id", async function () {
 			try {

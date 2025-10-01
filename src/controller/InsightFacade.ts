@@ -10,35 +10,42 @@ const directory = "./data";
 export default class InsightFacade implements IInsightFacade {
 	public async addDataset(id: string, content: string, kind: InsightDatasetKind): Promise<string[]> {
 		try {
-			id = id.trim();
 			const parsed = await Promise.all([this.fileParser(content), this.idAndSectionChecker(id, kind)]);
 			await this.writeFile(id, parsed);
 		} catch (e) {
 			throw new InsightError("file parsing error" + e);
 		}
 
-		return [id];
+		return await this.listID();
+	}
+	private async listID(): Promise<string[]> {
+		try {
+			return await fsPromises.readdir(directory);
+		} catch (e) {
+			throw new InsightError("failed to access data directory");
+		}
 	}
 
 	private async writeFile(id: string, data: any[]): Promise<void> {
 		try {
 			const fileDirect = directory + "/" + id;
+			await fsPromises.mkdir(directory, { recursive: true });
 			await fsPromises.writeFile(fileDirect, JSON.stringify(data));
 		} catch (e) {
-			throw new InsightError();
+			throw new InsightError("writeFile error");
 		}
 	}
 	private async duplicateID(id: string): Promise<boolean> {
 		const fileDirect = directory + "/" + id;
 		try {
-			fsPromises.access(fileDirect);
+			await fsPromises.access(fileDirect);
 			return true;
 		} catch (e) {
 			return false;
 		}
 	}
 	private async idAndSectionChecker(id: string, kind: InsightDatasetKind): Promise<void> {
-		if (id === "" || id.includes("_")) {
+		if (id.trim() === "" || id.includes("_")) {
 			throw new InsightError(" id is invalid");
 		}
 		if (await this.duplicateID(id)) {
