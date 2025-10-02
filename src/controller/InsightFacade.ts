@@ -128,6 +128,9 @@ export default class InsightFacade implements IInsightFacade {
 	}
 	public async removeDataset(id: string): Promise<string> {
 		// TODO: Remove this once you implement the methods!
+		if (id.trim() === "" || id.includes("_")) {
+			throw new InsightError(" id is invalid");
+		}
 		const exists = await this.duplicateID(id);
 		if (exists) {
 			const path = directory + "/" + id;
