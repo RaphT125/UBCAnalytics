@@ -1,4 +1,11 @@
-import { IInsightFacade, InsightDataset, InsightDatasetKind, InsightError, InsightResult } from "./IInsightFacade";
+import {
+	IInsightFacade,
+	InsightDataset,
+	InsightDatasetKind,
+	InsightError,
+	InsightResult,
+	NotFoundError,
+} from "./IInsightFacade";
 import JSZip from "jszip";
 import { promises as fsPromises } from "fs";
 /**
@@ -121,7 +128,18 @@ export default class InsightFacade implements IInsightFacade {
 	}
 	public async removeDataset(id: string): Promise<string> {
 		// TODO: Remove this once you implement the methods!
-		throw new Error(`InsightFacadeImpl::removeDataset() is unimplemented! - id=${id};`);
+		const exists = await this.duplicateID(id);
+		if (exists) {
+			const path = directory + "/" + id;
+			try {
+				await fsPromises.unlink(path);
+				return id;
+			} catch (e) {
+				throw new InsightError("Error removing Dataset");
+			}
+		} else {
+			throw new NotFoundError("dataset Not present");
+		}
 	}
 
 	public async performQuery(query: unknown): Promise<InsightResult[]> {
