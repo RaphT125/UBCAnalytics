@@ -27,7 +27,7 @@ export default class InsightFacade implements IInsightFacade {
 	}
 	private async listID(): Promise<string[]> {
 		try {
-			return await fsPromises.readdir(directory);
+			return await fsPromises.readdir(directory + "/" + "sections");
 		} catch (e) {
 			throw new InsightError("failed to access data directory");
 		}
@@ -35,15 +35,16 @@ export default class InsightFacade implements IInsightFacade {
 
 	private async writeFile(id: string, data: any[]): Promise<void> {
 		try {
-			const fileDirect = directory + "/" + id;
-			await fsPromises.mkdir(directory, { recursive: true });
+			const kindDirect = directory + "/" + "sections";
+			const fileDirect = kindDirect + "/" + id;
+			await fsPromises.mkdir(kindDirect, { recursive: true });
 			await fsPromises.writeFile(fileDirect, JSON.stringify(data));
 		} catch (e) {
 			throw new InsightError("writeFile error");
 		}
 	}
 	private async duplicateID(id: string): Promise<boolean> {
-		const fileDirect = directory + "/" + id;
+		const fileDirect = directory + "/" + "sections" + "/" + id;
 		try {
 			await fsPromises.access(fileDirect);
 			return true;
@@ -55,12 +56,11 @@ export default class InsightFacade implements IInsightFacade {
 		if (id.trim() === "" || id.includes("_")) {
 			throw new InsightError(" id is invalid");
 		}
-		if (await this.duplicateID(id)) {
-			throw new InsightError(" id duplicate");
-		}
-
 		if (kind != "sections") {
 			throw new InsightError(" kind is invalid");
+		}
+		if (await this.duplicateID(id)) {
+			throw new InsightError(" id duplicate");
 		}
 	}
 
@@ -133,7 +133,7 @@ export default class InsightFacade implements IInsightFacade {
 		}
 		const exists = await this.duplicateID(id);
 		if (exists) {
-			const path = directory + "/" + id;
+			const path = directory + "/" + "sections" + "/" + id;
 			try {
 				await fsPromises.unlink(path);
 				return id;
@@ -151,7 +151,18 @@ export default class InsightFacade implements IInsightFacade {
 	}
 
 	public async listDatasets(): Promise<InsightDataset[]> {
-		// TODO: Remove this once you implement the methods!
-		throw new Error(`InsightFacadeImpl::listDatasets is unimplemented!`);
+		const fileDirect = directory + "/" + "sections";
+		let list: InsightDataset[] = [];
+		try {
+			const files = await fsPromises.readdir(fileDirect);
+			for (const id of files) {
+				const path = fileDirect + "/" + id;
+				const file = await fsPromises.readFile(path);
+				list.push({ id, kind: InsightDatasetKind.Sections, numRows: file.length });
+			}
+			return list;
+		} catch (e) {
+			return [];
+		}
 	}
 }
