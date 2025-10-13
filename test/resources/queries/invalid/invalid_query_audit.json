@@ -1,0 +1,17 @@
+{
+	"title": "invalid expected audit type",
+	"input": {
+		"WHERE": {
+			"GT": {
+				"sections_audit": "test"
+			}
+		},
+		"OPTIONS": {
+			"COLUMNS": [
+				"sections_title"
+			]
+		}
+	},
+	"errorExpected": true,
+	"expected": "InsightError"
+}

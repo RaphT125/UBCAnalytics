@@ -1,0 +1,17 @@
+{
+	"title": "invalid expected subject type",
+	"input": {
+		"WHERE": {
+			"IS": {
+				"sections_subject": 97
+			}
+		},
+		"OPTIONS": {
+			"COLUMNS": [
+				"sections_subject"
+			]
+		}
+	},
+	"errorExpected": true,
+	"expected": "InsightError"
+}

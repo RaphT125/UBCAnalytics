@@ -1,0 +1,6 @@
+{
+  "title": "invalidObject",
+  "input": "",
+  "errorExpected": true,
+  "expected": "InsightError"
+}

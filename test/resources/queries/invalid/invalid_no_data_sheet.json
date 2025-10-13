@@ -1,0 +1,20 @@
+{
+	"title": "No datasetFound",
+	"input": {
+		"WHERE": {
+			"GT": {
+				"thing_avg": 97
+			}
+		},
+		"OPTIONS": {
+			"COLUMNS": [
+				"thing_dept",
+				"thing_avg"
+			],
+			"ORDER": "thing_avg"
+		}
+	},
+	"errorExpected": true,
+    "expected": "InsightError"
+
+}
