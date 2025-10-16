@@ -41,7 +41,7 @@ const directory = "./data";
 export default class InsightFacade implements IInsightFacade {
 	public async addDataset(id: string, content: string, kind: InsightDatasetKind): Promise<string[]> {
 		try {
-			const [parsed] = await Promise.all([this.fileParser(content), this.idAndSectionChecker(id, kind)]);
+			const parsed = await Promise.all([this.fileParser(content), this.idAndSectionChecker(id, kind)]);
 			await this.writeFile(id, parsed);
 		} catch (e) {
 			throw new InsightError("file parsing error" + e);
