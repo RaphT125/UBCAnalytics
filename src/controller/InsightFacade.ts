@@ -8,7 +8,8 @@ import {
 	ResultTooLargeError,
 } from "./IInsightFacade";
 import JSZip from "jszip";
-import { promises as fsPromises } from "fs";
+
+import fsPromises from "fs-extra";
 
 interface Section {
 	id: string;
@@ -40,7 +41,7 @@ const directory = "./data";
 export default class InsightFacade implements IInsightFacade {
 	public async addDataset(id: string, content: string, kind: InsightDatasetKind): Promise<string[]> {
 		try {
-			const parsed = await Promise.all([this.fileParser(content), this.idAndSectionChecker(id, kind)]);
+			const [parsed] = await Promise.all([this.fileParser(content), this.idAndSectionChecker(id, kind)]);
 			await this.writeFile(id, parsed);
 		} catch (e) {
 			throw new InsightError("file parsing error" + e);
@@ -487,8 +488,8 @@ export default class InsightFacade implements IInsightFacade {
 		try {
 			const files = await fsPromises.readdir(fileDirect);
 			for (const id of files) {
-				const path = fileDirect + "/" + id;
-				const file = await fsPromises.readFile(path);
+				//const path = fileDirect + "/" + id;
+				const file = await this.loadDataset(id);
 				list.push({ id, kind: InsightDatasetKind.Sections, numRows: file.length });
 			}
 			return list;
