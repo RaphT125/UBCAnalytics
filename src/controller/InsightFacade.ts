@@ -126,6 +126,7 @@ export default class InsightFacade implements IInsightFacade {
 									const num = Number(entry[key]);
 									if (Number.isFinite(num)) {
 										cleaned[key] = num;
+										break;
 									} else {
 										return [];
 									}
