@@ -8,7 +8,8 @@ import {
 	ResultTooLargeError,
 } from "./IInsightFacade";
 import JSZip from "jszip";
-import { promises as fsPromises } from "fs";
+
+import fsPromises from "fs-extra";
 
 interface Section {
 	id: string;
@@ -126,6 +127,7 @@ export default class InsightFacade implements IInsightFacade {
 									const num = Number(entry[key]);
 									if (Number.isFinite(num)) {
 										cleaned[key] = num;
+										break;
 									} else {
 										return [];
 									}
@@ -486,8 +488,8 @@ export default class InsightFacade implements IInsightFacade {
 		try {
 			const files = await fsPromises.readdir(fileDirect);
 			for (const id of files) {
-				const path = fileDirect + "/" + id;
-				const file = await fsPromises.readFile(path);
+				//const path = fileDirect + "/" + id;
+				const file = await this.loadDataset(id);
 				list.push({ id, kind: InsightDatasetKind.Sections, numRows: file.length });
 			}
 			return list;
