@@ -4,7 +4,6 @@ import path from "path";
 import prettier from "eslint-plugin-prettier";
 import prettierRecommended from "eslint-plugin-prettier/recommended";
 import tseslint from "@typescript-eslint/parser";
-import { fileURLToPath } from "url";
 
 
 /**

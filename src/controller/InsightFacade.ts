@@ -5,7 +5,7 @@ import {
 	InsightError,
 	InsightResult,
 	NotFoundError,
-    ResultTooLargeError,
+	ResultTooLargeError,
 } from "./IInsightFacade";
 import JSZip from "jszip";
 import { promises as fsPromises } from "fs";
@@ -168,30 +168,30 @@ export default class InsightFacade implements IInsightFacade {
 	}
 
 	public async performQuery(query: unknown): Promise<InsightResult[]> {
-        let validQuery = this.validateQuery(query);
-        let datasetId = this.extractDatasetId(validQuery);
-        let sections = await this.loadDataset(datasetId);
-        let filtered = this.applyFilters(sections, validQuery.WHERE);
-        
-        if (filtered.length > 5000) {
-            throw new ResultTooLargeError("Query result exceeds 5000 rows");
-        }
-        
-        let results = this.selectColumns(filtered, validQuery.OPTIONS.COLUMNS, datasetId);
-        
-        if (validQuery.OPTIONS.ORDER) {
-            results = this.sortResults(results, validQuery.OPTIONS.ORDER);
-        }
-        
-        return results;
-    }
+		const validQuery = this.validateQuery(query);
+		const datasetId = this.extractDatasetId(validQuery);
+		const sections = await this.loadDataset(datasetId);
+		const filtered = this.applyFilters(sections, validQuery.WHERE);
+
+		if (filtered.length > 5000) {
+			throw new ResultTooLargeError("Query result exceeds 5000 rows");
+		}
+
+		let results = this.selectColumns(filtered, validQuery.OPTIONS.COLUMNS, datasetId);
+
+		if (validQuery.OPTIONS.ORDER) {
+			results = this.sortResults(results, validQuery.OPTIONS.ORDER);
+		}
+
+		return results;
+	}
 
 	private validateQuery(query: unknown): Query {
 		if (!query || typeof query !== "object") {
 			throw new InsightError("Query must be an object");
 		}
 
-		let q = query as any;
+		const q = query as any;
 
 		if (!q.hasOwnProperty("WHERE")) {
 			throw new InsightError("Query missing WHERE clause");
@@ -201,7 +201,7 @@ export default class InsightFacade implements IInsightFacade {
 			throw new InsightError("Query missing OPTIONS clause");
 		}
 
-		let options = q.OPTIONS;
+		const options = q.OPTIONS;
 		if (!options || typeof options !== "object") {
 			throw new InsightError("OPTIONS must be an object");
 		}
@@ -218,7 +218,7 @@ export default class InsightFacade implements IInsightFacade {
 			throw new InsightError("COLUMNS cannot be empty");
 		}
 
-		for (let column of options.COLUMNS) {
+		for (const column of options.COLUMNS) {
 			if (typeof column !== "string") {
 				throw new InsightError("Column names must be strings");
 			}
@@ -230,7 +230,7 @@ export default class InsightFacade implements IInsightFacade {
 				throw new InsightError("ORDER must be a string");
 			}
 			this.validateColumnName(options.ORDER);
-			
+
 			if (!options.COLUMNS.includes(options.ORDER)) {
 				throw new InsightError("ORDER key must be in COLUMNS");
 			}
@@ -240,10 +240,18 @@ export default class InsightFacade implements IInsightFacade {
 	}
 
 	private validateColumnName(column: string): void {
-		let validColumns = [
-			"sections_id", "sections_course", "sections_title", "sections_professor",
-			"sections_subject", "sections_dept", "sections_year", "sections_avg", "sections_pass",
-			"sections_fail", "sections_audit"
+		const validColumns = [
+			"sections_id",
+			"sections_course",
+			"sections_title",
+			"sections_professor",
+			"sections_subject",
+			"sections_dept",
+			"sections_year",
+			"sections_avg",
+			"sections_pass",
+			"sections_fail",
+			"sections_audit",
 		];
 
 		if (!validColumns.includes(column)) {
@@ -252,10 +260,10 @@ export default class InsightFacade implements IInsightFacade {
 	}
 
 	private extractDatasetId(query: Query): string {
-		let firstColumn = query.OPTIONS.COLUMNS[0];
-		let datasetId = firstColumn.split("_")[0];
+		const firstColumn = query.OPTIONS.COLUMNS[0];
+		const datasetId = firstColumn.split("_")[0];
 
-		for (let column of query.OPTIONS.COLUMNS) {
+		for (const column of query.OPTIONS.COLUMNS) {
 			if (!column.startsWith(datasetId + "_")) {
 				throw new InsightError("Query references multiple datasets");
 			}
@@ -271,24 +279,24 @@ export default class InsightFacade implements IInsightFacade {
 			return;
 		}
 
-		for (let [key, value] of Object.entries(where)) {
+		for (const [key, value] of Object.entries(where)) {
 			if (key === "GT" || key === "LT" || key === "EQ") {
-				let compObj = value as any;
-				for (let field of Object.keys(compObj)) {
+				const compObj = value as any;
+				for (const field of Object.keys(compObj)) {
 					if (!field.startsWith(datasetId + "_")) {
 						throw new InsightError("Query references multiple datasets");
 					}
 				}
 			} else if (key === "IS") {
-				let compObj = value as any;
-				for (let field of Object.keys(compObj)) {
+				const compObj = value as any;
+				for (const field of Object.keys(compObj)) {
 					if (!field.startsWith(datasetId + "_")) {
 						throw new InsightError("Query references multiple datasets");
 					}
 				}
 			} else if (key === "AND" || key === "OR") {
-				let conditions = value as any[];
-				for (let condition of conditions) {
+				const conditions = value as any[];
+				for (const condition of conditions) {
 					this.checkDatasetConsistency(condition, datasetId);
 				}
 			} else if (key === "NOT") {
@@ -298,22 +306,22 @@ export default class InsightFacade implements IInsightFacade {
 	}
 
 	private async loadDataset(datasetId: string): Promise<Section[]> {
-		let filePath = directory + "/sections/" + datasetId;
-		
+		const filePath = directory + "/sections/" + datasetId;
+
 		try {
-			let data = await fsPromises.readFile(filePath, "utf8");
+			const data = await fsPromises.readFile(filePath, "utf8");
 			let parsed = JSON.parse(data);
-			
+
 			while (Array.isArray(parsed) && parsed.length > 0 && Array.isArray(parsed[0])) {
 				parsed = parsed[0];
 			}
-			
+
 			if (Array.isArray(parsed) && parsed.length > 0) {
 				if (Array.isArray(parsed[0])) {
 					parsed = parsed.flat();
 				}
 			}
-			
+
 			return parsed as Section[];
 		} catch (error) {
 			throw new InsightError(`Dataset ${datasetId} not found`);
@@ -325,7 +333,7 @@ export default class InsightFacade implements IInsightFacade {
 			return sections;
 		}
 
-		return sections.filter(section => this.checkCondition(section, where));
+		return sections.filter((section) => this.checkCondition(section, where));
 	}
 
 	private checkCondition(section: Section, condition: any): boolean {
@@ -333,7 +341,7 @@ export default class InsightFacade implements IInsightFacade {
 			return true;
 		}
 
-		let [operator, operand] = Object.entries(condition)[0];
+		const [operator, operand] = Object.entries(condition)[0];
 
 		switch (operator) {
 			case "GT":
@@ -351,12 +359,12 @@ export default class InsightFacade implements IInsightFacade {
 				if (!Array.isArray(operand) || operand.length === 0) {
 					throw new InsightError("AND cannot be empty");
 				}
-				return operand.every(cond => this.checkCondition(section, cond));
+				return operand.every((cond) => this.checkCondition(section, cond));
 			case "OR":
 				if (!Array.isArray(operand) || operand.length === 0) {
 					throw new InsightError("OR cannot be empty");
 				}
-				return operand.some(cond => this.checkCondition(section, cond));
+				return operand.some((cond) => this.checkCondition(section, cond));
 			case "NOT":
 				if (!operand) {
 					throw new InsightError("NOT cannot be empty");
@@ -368,43 +376,50 @@ export default class InsightFacade implements IInsightFacade {
 	}
 
 	private doComparison(section: Section, operand: any, operator: string): boolean {
-		let [field, value] = Object.entries(operand)[0];
-		let fieldName = field.split("_")[1];
-		let sectionValue = (section as any)[this.getFieldName(fieldName)];
-        
+		const [field, value] = Object.entries(operand)[0];
+		const fieldName = field.split("_")[1];
+		const sectionValue = (section as any)[this.getFieldName(fieldName)];
+
 		if (typeof value !== "number" || typeof sectionValue !== "number") {
 			throw new InsightError("Numeric comparison requires number values");
 		}
 
 		switch (operator) {
-			case ">": return sectionValue > value;
-			case "<": return sectionValue < value;
-			case "=": return sectionValue === value;
-			default: return false;
+			case ">":
+				return sectionValue > value;
+			case "<":
+				return sectionValue < value;
+			case "=":
+				return sectionValue === value;
+			default:
+				return false;
 		}
 	}
 
 	private doStringMatch(section: Section, operand: any): boolean {
-		let [field, pattern] = Object.entries(operand)[0] as [string, string];
-		let fieldName = field.split("_")[1];
-		let sectionValue = (section as any)[this.getFieldName(fieldName)];
+		const [field, pattern] = Object.entries(operand)[0] as [string, string];
+		const fieldName = field.split("_")[1];
+		const sectionValue = (section as any)[this.getFieldName(fieldName)];
 
 		if (typeof pattern !== "string" || typeof sectionValue !== "string") {
 			throw new InsightError("String comparison requires string values");
 		}
 
 		if (pattern.includes("*")) {
-			let starCount = (pattern.match(/\*/g) || []).length;
-			let firstStar = pattern.indexOf("*");
-			let lastStar = pattern.lastIndexOf("*");
-			
-			if (starCount > 2 || (starCount === 2 && firstStar !== 0) || 
-				(starCount === 1 && firstStar !== 0 && firstStar !== pattern.length - 1)) {
+			const starCount = (pattern.match(/\*/g) || []).length;
+			const firstStar = pattern.indexOf("*");
+			const lastStar = pattern.lastIndexOf("*");
+
+			if (
+				starCount > 2 ||
+				(starCount === 2 && firstStar !== 0) ||
+				(starCount === 1 && firstStar !== 0 && firstStar !== pattern.length - 1)
+			) {
 				throw new InsightError("Invalid wildcard usage");
 			}
 
-			let escaped = pattern.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\\\*/g, ".*");
-			let regex = new RegExp("^" + escaped + "$");
+			const escaped = pattern.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\\\*/g, ".*");
+			const regex = new RegExp("^" + escaped + "$");
 			return regex.test(sectionValue);
 		}
 
@@ -412,62 +427,62 @@ export default class InsightFacade implements IInsightFacade {
 	}
 
 	private selectColumns(sections: Section[], columns: string[], datasetId: string): InsightResult[] {
-		return sections.map(section => {
-			let result: InsightResult = {};
-			
-			for (let column of columns) {
-				let fieldName = column.split("_")[1];
-				let mappedField = this.getFieldName(fieldName);
+		return sections.map((section) => {
+			const result: InsightResult = {};
+
+			for (const column of columns) {
+				const fieldName = column.split("_")[1];
+				const mappedField = this.getFieldName(fieldName);
 				result[column] = (section as any)[mappedField];
 			}
-			
+
 			return result;
 		});
 	}
 
 	private sortResults(results: InsightResult[], orderKey: string): InsightResult[] {
 		return results.sort((a, b) => {
-			let aVal = a[orderKey];
-			let bVal = b[orderKey];
-			
+			const aVal = a[orderKey];
+			const bVal = b[orderKey];
+
 			if (typeof aVal === "number" && typeof bVal === "number") {
-				let diff = aVal - bVal;
+				const diff = aVal - bVal;
 				if (diff !== 0) return diff;
 
-				let aStr = JSON.stringify(a);
-				let bStr = JSON.stringify(b);
+				const aStr = JSON.stringify(a);
+				const bStr = JSON.stringify(b);
 				return aStr.localeCompare(bStr);
 			}
-			
+
 			if (typeof aVal === "string" && typeof bVal === "string") {
 				return aVal.localeCompare(bVal);
 			}
-			
+
 			return 0;
 		});
 	}
 
 	private getFieldName(fieldName: string): string {
-		let fieldMap: { [key: string]: string } = {
-			"id": "id",
-			"course": "Course", 
-			"title": "Title",
-			"professor": "Professor",
-			"subject": "Subject",
-			"dept": "Subject",
-			"year": "Year",
-			"avg": "Avg",
-			"pass": "Pass",
-			"fail": "Fail",
-			"audit": "Audit"
+		const fieldMap: { [key: string]: string } = {
+			id: "id",
+			course: "Course",
+			title: "Title",
+			professor: "Professor",
+			subject: "Subject",
+			dept: "Subject",
+			year: "Year",
+			avg: "Avg",
+			pass: "Pass",
+			fail: "Fail",
+			audit: "Audit",
 		};
-		
+
 		return fieldMap[fieldName] || fieldName;
 	}
 
 	public async listDatasets(): Promise<InsightDataset[]> {
 		const fileDirect = directory + "/" + "sections";
-		let list: InsightDataset[] = [];
+		const list: InsightDataset[] = [];
 		try {
 			const files = await fsPromises.readdir(fileDirect);
 			for (const id of files) {
