@@ -242,6 +242,11 @@ export default class InsightFacade implements IInsightFacade {
 	}
 
 	private validateColumnName(column: string): void {
+		const parts = column.split("_");
+		if (parts.length !== 2 || parts[0] === "" || parts[1] === "") {
+			throw new InsightError(`Invalid column name: ${column}`);
+		}
+
 		const validColumns = [
 			"sections_id",
 			"sections_course",
@@ -282,17 +287,11 @@ export default class InsightFacade implements IInsightFacade {
 		}
 
 		for (const [key, value] of Object.entries(where)) {
-			if (key === "GT" || key === "LT" || key === "EQ") {
+			if (key === "GT" || key === "LT" || key === "EQ" || key === "IS") {
 				const compObj = value as any;
 				for (const field of Object.keys(compObj)) {
-					if (!field.startsWith(datasetId + "_")) {
-						throw new InsightError("Query references multiple datasets");
-					}
-				}
-			} else if (key === "IS") {
-				const compObj = value as any;
-				for (const field of Object.keys(compObj)) {
-					if (!field.startsWith(datasetId + "_")) {
+					const parts = field.split("_");
+					if (parts.length !== 2 || parts[0] !== datasetId || parts[1] === "") {
 						throw new InsightError("Query references multiple datasets");
 					}
 				}
@@ -368,7 +367,7 @@ export default class InsightFacade implements IInsightFacade {
 				}
 				return operand.some((cond) => this.checkCondition(section, cond));
 			case "NOT":
-				if (!operand) {
+				if (!operand || typeof operand !== "object" || Object.keys(operand).length === 0) {
 					throw new InsightError("NOT cannot be empty");
 				}
 				return !this.checkCondition(section, operand);
@@ -435,7 +434,13 @@ export default class InsightFacade implements IInsightFacade {
 			for (const column of columns) {
 				const fieldName = column.split("_")[1];
 				const mappedField = this.getFieldName(fieldName);
-				result[column] = (section as any)[mappedField];
+				let value = (section as any)[mappedField];
+
+				if (column === "sections_id") {
+					value = String(value);
+				}
+
+				result[column] = value;
 			}
 
 			return result;
