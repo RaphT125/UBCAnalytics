@@ -242,21 +242,29 @@ export default class InsightFacade implements IInsightFacade {
 	}
 
 	private validateColumnName(column: string): void {
-        const parts = column.split("_");
-        if (parts.length !== 2 || parts[0] === "" || parts[1] === "") {
-            throw new InsightError(`Invalid column name: ${column}`);
-        }
-        
-        const validColumns = [
-            "sections_id", "sections_course", "sections_title", "sections_professor",
-            "sections_subject", "sections_dept", "sections_year", "sections_avg", 
-            "sections_pass", "sections_fail", "sections_audit"
-        ];
-    
-        if (!validColumns.includes(column)) {
-            throw new InsightError(`Invalid column name: ${column}`);
-        }
-    }
+		const parts = column.split("_");
+		if (parts.length !== 2 || parts[0] === "" || parts[1] === "") {
+			throw new InsightError(`Invalid column name: ${column}`);
+		}
+
+		const validColumns = [
+			"sections_id",
+			"sections_course",
+			"sections_title",
+			"sections_professor",
+			"sections_subject",
+			"sections_dept",
+			"sections_year",
+			"sections_avg",
+			"sections_pass",
+			"sections_fail",
+			"sections_audit",
+		];
+
+		if (!validColumns.includes(column)) {
+			throw new InsightError(`Invalid column name: ${column}`);
+		}
+	}
 
 	private extractDatasetId(query: Query): string {
 		const firstColumn = query.OPTIONS.COLUMNS[0];
@@ -274,29 +282,29 @@ export default class InsightFacade implements IInsightFacade {
 	}
 
 	private checkDatasetConsistency(where: any, datasetId: string): void {
-        if (!where || typeof where !== "object") {
-            return;
-        }
-    
-        for (const [key, value] of Object.entries(where)) {
-            if (key === "GT" || key === "LT" || key === "EQ" || key === "IS") {
-                const compObj = value as any;
-                for (const field of Object.keys(compObj)) {
-                    const parts = field.split("_");
-                    if (parts.length !== 2 || parts[0] !== datasetId || parts[1] === "") {
-                        throw new InsightError("Query references multiple datasets");
-                    }
-                }
-            } else if (key === "AND" || key === "OR") {
-                const conditions = value as any[];
-                for (const condition of conditions) {
-                    this.checkDatasetConsistency(condition, datasetId);
-                }
-            } else if (key === "NOT") {
-                this.checkDatasetConsistency(value, datasetId);
-            }
-        }
-    }
+		if (!where || typeof where !== "object") {
+			return;
+		}
+
+		for (const [key, value] of Object.entries(where)) {
+			if (key === "GT" || key === "LT" || key === "EQ" || key === "IS") {
+				const compObj = value as any;
+				for (const field of Object.keys(compObj)) {
+					const parts = field.split("_");
+					if (parts.length !== 2 || parts[0] !== datasetId || parts[1] === "") {
+						throw new InsightError("Query references multiple datasets");
+					}
+				}
+			} else if (key === "AND" || key === "OR") {
+				const conditions = value as any[];
+				for (const condition of conditions) {
+					this.checkDatasetConsistency(condition, datasetId);
+				}
+			} else if (key === "NOT") {
+				this.checkDatasetConsistency(value, datasetId);
+			}
+		}
+	}
 
 	private async loadDataset(datasetId: string): Promise<Section[]> {
 		const filePath = directory + "/sections/" + datasetId;
@@ -358,11 +366,11 @@ export default class InsightFacade implements IInsightFacade {
 					throw new InsightError("OR cannot be empty");
 				}
 				return operand.some((cond) => this.checkCondition(section, cond));
-            case "NOT":
-                if (!operand || typeof operand !== "object" || Object.keys(operand).length === 0) {
-                    throw new InsightError("NOT cannot be empty");
-                }
-                return !this.checkCondition(section, operand);
+			case "NOT":
+				if (!operand || typeof operand !== "object" || Object.keys(operand).length === 0) {
+					throw new InsightError("NOT cannot be empty");
+				}
+				return !this.checkCondition(section, operand);
 			default:
 				throw new InsightError(`Unknown operator: ${operator}`);
 		}
@@ -420,47 +428,46 @@ export default class InsightFacade implements IInsightFacade {
 	}
 
 	private selectColumns(sections: Section[], columns: string[], datasetId: string): InsightResult[] {
-        return sections.map((section) => {
-            const result: InsightResult = {};
-    
-            for (const column of columns) {
-                const fieldName = column.split("_")[1];
-                const mappedField = this.getFieldName(fieldName);
-                let value = (section as any)[mappedField];
-                
-                if (column === "sections_id") {
-                    value = String(value);
-                }
-                
-                result[column] = value;
-            }
-    
-            return result;
-        });
-    }
+		return sections.map((section) => {
+			const result: InsightResult = {};
+
+			for (const column of columns) {
+				const fieldName = column.split("_")[1];
+				const mappedField = this.getFieldName(fieldName);
+				let value = (section as any)[mappedField];
+
+				if (column === "sections_id") {
+					value = String(value);
+				}
+
+				result[column] = value;
+			}
+
+			return result;
+		});
+	}
 
 	private sortResults(results: InsightResult[], orderKey: string): InsightResult[] {
-        return results.sort((a, b) => {
-            const aVal = a[orderKey];
-            const bVal = b[orderKey];
-            
-            if (typeof aVal === "number" && typeof bVal === "number") {
-                const diff = aVal - bVal;
-                if (diff !== 0) return diff;
-                
-                const aStr = JSON.stringify(a);
-                const bStr = JSON.stringify(b);
-                return aStr.localeCompare(bStr);
-            }
-            
-            if (typeof aVal === "string" && typeof bVal === "string") {
-                return aVal.localeCompare(bVal);
-            }
-            
-            return 0;
-        });
-    }
-    
+		return results.sort((a, b) => {
+			const aVal = a[orderKey];
+			const bVal = b[orderKey];
+
+			if (typeof aVal === "number" && typeof bVal === "number") {
+				const diff = aVal - bVal;
+				if (diff !== 0) return diff;
+
+				const aStr = JSON.stringify(a);
+				const bStr = JSON.stringify(b);
+				return aStr.localeCompare(bStr);
+			}
+
+			if (typeof aVal === "string" && typeof bVal === "string") {
+				return aVal.localeCompare(bVal);
+			}
+
+			return 0;
+		});
+	}
 
 	private getFieldName(fieldName: string): string {
 		const fieldMap: { [key: string]: string } = {

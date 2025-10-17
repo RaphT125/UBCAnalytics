@@ -281,7 +281,7 @@ describe("InsightFacade", function () {
 			let result: InsightResult[] = []; // dummy value before being reassigned
 			try {
 				result = await facade.performQuery(input);
-                
+
 				expect(result).to.have.deep.members(expected);
 				if (errorExpected) {
 					expect.fail(`performQuery resolved when it should have rejected with ${expected}`);
