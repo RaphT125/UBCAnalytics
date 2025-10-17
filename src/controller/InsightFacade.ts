@@ -42,13 +42,14 @@ export default class InsightFacade implements IInsightFacade {
 	public async addDataset(id: string, content: string, kind: InsightDatasetKind): Promise<string[]> {
 		try {
 			const parsed = await Promise.all([this.fileParser(content), this.idAndSectionChecker(id, kind)]);
-			await this.writeFile(id, parsed);
+			await this.writeFile(id, parsed[0]);
 		} catch (e) {
 			throw new InsightError("file parsing error" + e);
 		}
 
 		return await this.listID();
 	}
+
 	private async listID(): Promise<string[]> {
 		try {
 			return await fsPromises.readdir(directory + "/" + "sections");
@@ -76,11 +77,12 @@ export default class InsightFacade implements IInsightFacade {
 			return false;
 		}
 	}
+
 	private async idAndSectionChecker(id: string, kind: InsightDatasetKind): Promise<void> {
 		if (id.trim() === "" || id.includes("_")) {
 			throw new InsightError(" id is invalid");
 		}
-		if (kind != "sections") {
+		if (kind !== InsightDatasetKind.Sections) {
 			throw new InsightError(" kind is invalid");
 		}
 		if (await this.duplicateID(id)) {
@@ -122,35 +124,35 @@ export default class InsightFacade implements IInsightFacade {
 					.map((entry: any) => {
 						const cleaned: any = {};
 						for (const key of requiredFields) {
-							for (const numKey of numberFiled) {
-								if (key == numKey) {
-									const num = Number(entry[key]);
-									if (Number.isFinite(num)) {
-										cleaned[key] = num;
-										break;
-									} else {
-										return [];
-									}
+							if (numberFiled.includes(key)) {
+								const num = Number(entry[key]);
+								if (Number.isFinite(num)) {
+									cleaned[key] = num;
 								} else {
-									cleaned[key] = entry[key];
+									return null;
 								}
+							} else {
+								cleaned[key] = entry[key];
 							}
 						}
 						return cleaned;
-					});
+					})
+					.filter((entry: any) => entry !== null);
 			});
 			try {
 				const parsedFiles = await Promise.all(fileContent);
-				if (parsedFiles.flat().length == 0) {
+				const flatResult = parsedFiles.flat();
+				if (flatResult.length == 0) {
 					throw new InsightError("file parsing error");
 				} else {
-					return parsedFiles.flat();
+					return flatResult;
 				}
 			} catch (e) {
 				throw new InsightError("invalid file entry");
 			}
 		}
 	}
+
 	public async removeDataset(id: string): Promise<string> {
 		if (id.trim() === "" || id.includes("_")) {
 			throw new InsightError(" id is invalid");
@@ -247,21 +249,10 @@ export default class InsightFacade implements IInsightFacade {
 			throw new InsightError(`Invalid column name: ${column}`);
 		}
 
-		const validColumns = [
-			"sections_id",
-			"sections_course",
-			"sections_title",
-			"sections_professor",
-			"sections_subject",
-			"sections_dept",
-			"sections_year",
-			"sections_avg",
-			"sections_pass",
-			"sections_fail",
-			"sections_audit",
-		];
+		const validFields = ["id", "course", "title", "instructor", "dept", "year", "avg", "pass", "fail", "audit"];
+		const fieldName = parts[1];
 
-		if (!validColumns.includes(column)) {
+		if (!validFields.includes(fieldName)) {
 			throw new InsightError(`Invalid column name: ${column}`);
 		}
 	}
@@ -413,7 +404,7 @@ export default class InsightFacade implements IInsightFacade {
 
 			if (
 				starCount > 2 ||
-				(starCount === 2 && firstStar !== 0) ||
+				(starCount === 2 && !(firstStar === 0 && lastStar === pattern.length - 1)) ||
 				(starCount === 1 && firstStar !== 0 && firstStar !== pattern.length - 1)
 			) {
 				throw new InsightError("Invalid wildcard usage");
@@ -436,7 +427,7 @@ export default class InsightFacade implements IInsightFacade {
 				const mappedField = this.getFieldName(fieldName);
 				let value = (section as any)[mappedField];
 
-				if (column === "sections_id") {
+				if (fieldName === "id") {
 					value = String(value);
 				}
 
@@ -471,11 +462,10 @@ export default class InsightFacade implements IInsightFacade {
 
 	private getFieldName(fieldName: string): string {
 		const fieldMap: { [key: string]: string } = {
-			id: "id",
+			id: "Course",
 			course: "Course",
 			title: "Title",
-			professor: "Professor",
-			subject: "Subject",
+			instructor: "Professor",
 			dept: "Subject",
 			year: "Year",
 			avg: "Avg",
