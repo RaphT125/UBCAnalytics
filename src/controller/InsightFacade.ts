@@ -8,7 +8,7 @@ import {
 	ResultTooLargeError,
 } from "./IInsightFacade";
 import JSZip from "jszip";
-
+import parse5 from "parse5";
 import fsPromises from "fs-extra";
 
 interface Section {
@@ -42,7 +42,7 @@ export default class InsightFacade implements IInsightFacade {
 	public async addDataset(id: string, content: string, kind: InsightDatasetKind): Promise<string[]> {
 		try {
 			const parsed = await Promise.all([this.fileParser(content), this.idAndSectionChecker(id, kind)]);
-			await this.writeFile(id, parsed[0]);
+			await this.writeFile(id, parsed);
 		} catch (e) {
 			throw new InsightError("file parsing error" + e);
 		}
@@ -82,7 +82,7 @@ export default class InsightFacade implements IInsightFacade {
 		if (id.trim() === "" || id.includes("_")) {
 			throw new InsightError(" id is invalid");
 		}
-		if (kind !== InsightDatasetKind.Sections) {
+		if (kind != "sections") {
 			throw new InsightError(" kind is invalid");
 		}
 		if (await this.duplicateID(id)) {
@@ -404,7 +404,7 @@ export default class InsightFacade implements IInsightFacade {
 
 			if (
 				starCount > 2 ||
-				(starCount === 2 && !(firstStar === 0 && lastStar === pattern.length - 1)) ||
+				(starCount === 2 && firstStar !== 0) ||
 				(starCount === 1 && firstStar !== 0 && firstStar !== pattern.length - 1)
 			) {
 				throw new InsightError("Invalid wildcard usage");
@@ -427,7 +427,7 @@ export default class InsightFacade implements IInsightFacade {
 				const mappedField = this.getFieldName(fieldName);
 				let value = (section as any)[mappedField];
 
-				if (fieldName === "id") {
+				if (column === "sections_id") {
 					value = String(value);
 				}
 
