@@ -8,7 +8,6 @@ import {
 } from "../../src/controller/IInsightFacade";
 import InsightFacade from "../../src/controller/InsightFacade";
 import { clearDisk, getContentFromArchives, loadTestQuery } from "../TestUtil";
-
 import { expect, use } from "chai";
 import chaiAsPromised from "chai-as-promised";
 
@@ -202,14 +201,14 @@ describe("InsightFacade", function () {
 				expect(error).to.be.instanceof(InsightError);
 			}
 		});
-		it("should fail, room has not been added", async function () {
-			try {
-				await facade.addDataset("ubc3", valid, InsightDatasetKind.Rooms);
-				expect.fail("An Error Should have been thrown");
-			} catch (error) {
-				expect(error).to.be.instanceof(InsightError);
-			}
-		});
+		// it("should fail, room has not been added", async function () {
+		// 	try {
+		// 		await facade.addDataset("ubc3", valid, InsightDatasetKind.Rooms);
+		// 		expect.fail("An Error Should have been thrown");
+		// 	} catch (error) {
+		// 		expect(error).to.be.instanceof(InsightError);
+		// 	}
+		// });
 	});
 
 	describe("RemoveDataset", function () {

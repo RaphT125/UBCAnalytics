@@ -42,7 +42,7 @@ export default class InsightFacade implements IInsightFacade {
 	public async addDataset(id: string, content: string, kind: InsightDatasetKind): Promise<string[]> {
 		try {
 			const parsed = await Promise.all([this.fileParser(content), this.idAndSectionChecker(id, kind)]);
-			await this.writeFile(id, parsed);
+			await this.writeFile(id, parsed, kind);
 		} catch (e) {
 			throw new InsightError("file parsing error" + e);
 		}
@@ -52,37 +52,54 @@ export default class InsightFacade implements IInsightFacade {
 
 	private async listID(): Promise<string[]> {
 		try {
-			return await fsPromises.readdir(directory + "/" + "sections");
+			const kinds = Object.values(InsightDatasetKind);
+			const results = await Promise.all(
+				kinds.map(async (kind) => {
+					const path = `${directory}/${kind}`;
+					try {
+						return await fsPromises.readdir(path);
+					} catch (err: any) {
+						return [];
+					}
+				})
+			);
+			return results.flat();
 		} catch (e) {
 			throw new InsightError("failed to access data directory");
 		}
 	}
 
-	private async writeFile(id: string, data: any[]): Promise<void> {
+	private async writeFile(id: string, data: any[], kind: InsightDatasetKind): Promise<void> {
 		try {
-			const kindDirect = directory + "/" + "sections";
+			const kindDirect = directory + "/" + kind;
 			const fileDirect = kindDirect + "/" + id;
 			await fsPromises.mkdir(kindDirect, { recursive: true });
 			await fsPromises.writeFile(fileDirect, JSON.stringify(data));
 		} catch (e) {
-			throw new InsightError("writeFile error");
+			throw new InsightError("writeFileSections error");
 		}
 	}
+
 	private async duplicateID(id: string): Promise<boolean> {
-		const fileDirect = directory + "/" + "sections" + "/" + id;
-		try {
-			await fsPromises.access(fileDirect);
-			return true;
-		} catch (e) {
-			return false;
-		}
+		const kinds = Object.values(InsightDatasetKind);
+		const results = await Promise.all(
+			kinds.map(async (kind) => {
+				try {
+					await fsPromises.access(`${directory}/${kind}/${id}`);
+					return true;
+				} catch (err: any) {
+					return false;
+				}
+			})
+		);
+		return results.some(Boolean);
 	}
 
 	private async idAndSectionChecker(id: string, kind: InsightDatasetKind): Promise<void> {
 		if (id.trim() === "" || id.includes("_")) {
 			throw new InsightError(" id is invalid");
 		}
-		if (kind != "sections") {
+		if (kind != "sections" && kind != "rooms") {
 			throw new InsightError(" kind is invalid");
 		}
 		if (await this.duplicateID(id)) {
