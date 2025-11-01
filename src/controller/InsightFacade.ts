@@ -176,11 +176,11 @@ export default class InsightFacade implements IInsightFacade {
 		} catch {
 			throw new InsightError(" wrong file type");
 		}
-		const folder = zip.folder("courses");
-		if (!folder) {
-			throw new InsightError("invalid folder path");
+		const file = zip.file(/index\.htm/);
+		if (file.length === 0 ) {
+			throw new InsightError("invalid files path");
 		}
-		const files = folder.file(/.*/);
+		//const path =
 
 
 	}
