@@ -41,7 +41,7 @@ const directory = "./data";
 export default class InsightFacade implements IInsightFacade {
 	public async addDataset(id: string, content: string, kind: InsightDatasetKind): Promise<string[]> {
 		try {
-			const parsed = await Promise.all([this.fileParser(content), this.idAndSectionChecker(id, kind)]);
+			const parsed = await Promise.all([this.sectionFileParser(content), this.idAndSectionChecker(id, kind)]);
 			await this.writeFile(id, parsed, kind);
 		} catch (e) {
 			throw new InsightError("file parsing error" + e);
@@ -107,7 +107,7 @@ export default class InsightFacade implements IInsightFacade {
 		}
 	}
 
-	private async fileParser(content: string) {
+	private async sectionFileParser(content: string) {
 		let zip: JSZip;
 		try {
 			zip = await JSZip.loadAsync(content, { base64: true });
@@ -168,6 +168,21 @@ export default class InsightFacade implements IInsightFacade {
 				throw new InsightError("invalid file entry");
 			}
 		}
+	}
+	private async roomFileParser(content: string) {
+		let zip: JSZip;
+		try {
+			zip = await JSZip.loadAsync(content, { base64: true });
+		} catch {
+			throw new InsightError(" wrong file type");
+		}
+		const folder = zip.folder("courses");
+		if (!folder) {
+			throw new InsightError("invalid folder path");
+		}
+		const files = folder.file(/.*/);
+
+
 	}
 
 	public async removeDataset(id: string): Promise<string> {
