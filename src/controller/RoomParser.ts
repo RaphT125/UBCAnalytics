@@ -2,7 +2,7 @@ import { InsightError } from "./IInsightFacade";
 import { Parsers } from "./Parsers";
 import parse5 from "parse5";
 
-/** Minimal room row type (extend as you implement more fields) */
+//AI was used to create the baseline for this class
 export interface Room {}
 
 export class RoomParser extends Parsers<Room> {
