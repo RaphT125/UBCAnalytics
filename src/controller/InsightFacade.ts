@@ -7,9 +7,10 @@ import {
 	NotFoundError,
 	ResultTooLargeError,
 } from "./IInsightFacade";
-import JSZip from "jszip";
-import parse5 from "parse5";
 import fsPromises from "fs-extra";
+import { Parsers } from "./Parsers";
+import { SectionParser } from "./SectionParser";
+import { RoomParser } from "./RoomParser";
 
 interface Section {
 	id: string;
@@ -41,13 +42,25 @@ const directory = "./data";
 export default class InsightFacade implements IInsightFacade {
 	public async addDataset(id: string, content: string, kind: InsightDatasetKind): Promise<string[]> {
 		try {
-			const parsed = await Promise.all([this.sectionFileParser(content), this.idAndSectionChecker(id, kind)]);
+			const parser = this.getParser(kind);
+			await this.validateId(id);
+			const parsed = await parser.parse(content);
 			await this.writeFile(id, parsed, kind);
 		} catch (e) {
 			throw new InsightError("file parsing error" + e);
 		}
 
 		return await this.listID();
+	}
+	private getParser(kind: InsightDatasetKind): Parsers<any> {
+		switch (kind) {
+			case InsightDatasetKind.Sections:
+				return new SectionParser(directory);
+			case InsightDatasetKind.Rooms:
+				return new RoomParser(directory);
+			default:
+				throw new InsightError(" kind is invalid");
+		}
 	}
 
 	private async listID(): Promise<string[]> {
@@ -79,6 +92,15 @@ export default class InsightFacade implements IInsightFacade {
 			throw new InsightError("writeFileSections error");
 		}
 	}
+	private async validateId(id: string): Promise<void> {
+		if (id.trim() === "" || id.includes("_")) {
+			throw new InsightError(" id is invalid");
+		}
+
+		if (await this.duplicateID(id)) {
+			throw new InsightError(" id duplicate");
+		}
+	}
 
 	private async duplicateID(id: string): Promise<boolean> {
 		const kinds = Object.values(InsightDatasetKind);
@@ -93,96 +115,6 @@ export default class InsightFacade implements IInsightFacade {
 			})
 		);
 		return results.some(Boolean);
-	}
-
-	private async idAndSectionChecker(id: string, kind: InsightDatasetKind): Promise<void> {
-		if (id.trim() === "" || id.includes("_")) {
-			throw new InsightError(" id is invalid");
-		}
-		if (kind != "sections" && kind != "rooms") {
-			throw new InsightError(" kind is invalid");
-		}
-		if (await this.duplicateID(id)) {
-			throw new InsightError(" id duplicate");
-		}
-	}
-
-	private async sectionFileParser(content: string) {
-		let zip: JSZip;
-		try {
-			zip = await JSZip.loadAsync(content, { base64: true });
-		} catch {
-			throw new InsightError(" wrong file type");
-		}
-		const folder = zip.folder("courses");
-		if (!folder) {
-			throw new InsightError("invalid folder path");
-		}
-		const files = folder.file(/.*/);
-
-		if (files.length == 0) {
-			throw new InsightError("no files found");
-		} else {
-			const requiredFields = ["id", "Course", "Title", "Professor", "Subject", "Year", "Avg", "Pass", "Fail", "Audit"];
-			const numberFiled = ["Year", "Avg", "Pass", "Fail", "Audit"];
-			const fileContent = files.map(async (file) => {
-				const jsonContent = await file.async("text");
-				let parsed: any;
-				try {
-					parsed = JSON.parse(jsonContent);
-				} catch (e) {
-					return [];
-				}
-				if (!Array.isArray(parsed.result)) {
-					return [];
-				}
-				return parsed.result
-					.filter((entry: any) => requiredFields.every((key) => entry.hasOwnProperty(key)))
-					.map((entry: any) => {
-						const cleaned: any = {};
-						for (const key of requiredFields) {
-							if (numberFiled.includes(key)) {
-								const num = Number(entry[key]);
-								if (Number.isFinite(num)) {
-									cleaned[key] = num;
-								} else {
-									return null;
-								}
-							} else {
-								cleaned[key] = entry[key];
-							}
-						}
-						return cleaned;
-					})
-					.filter((entry: any) => entry !== null);
-			});
-			try {
-				const parsedFiles = await Promise.all(fileContent);
-				const flatResult = parsedFiles.flat();
-				if (flatResult.length == 0) {
-					throw new InsightError("file parsing error");
-				} else {
-					return flatResult;
-				}
-			} catch (e) {
-				throw new InsightError("invalid file entry");
-			}
-		}
-	}
-	private async roomFileParser(content: string) {
-		let zip: JSZip;
-		try {
-			zip = await JSZip.loadAsync(content, { base64: true });
-		} catch {
-			throw new InsightError(" wrong file type");
-		}
-		const file = zip.file(/index\.htm/);
-		if (file.length === 0 ) {
-			throw new InsightError("invalid files path");
-		}
-		//const path =
-
-
 	}
 
 	public async removeDataset(id: string): Promise<string> {
