@@ -34,6 +34,7 @@ interface Query {
 }
 const directory = "./data";
 export default class InsightFacade implements IInsightFacade {
+	//AI was used to help debug
 	public async addDataset(id: string, content: string, kind: InsightDatasetKind): Promise<string[]> {
 		try {
 			const parser = this.getParser(kind);
