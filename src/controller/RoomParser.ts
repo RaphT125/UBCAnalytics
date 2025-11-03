@@ -10,9 +10,9 @@ export interface Room {
 	number: string;
 	name: string;
 	address: string;
-	lat: number;
-	lon: number;
-	seats: number;
+	lat: number | undefined;
+	lon: number | undefined;
+	seats: number | undefined;
 	type: string;
 	furniture: string;
 	href: string;
@@ -22,8 +22,8 @@ interface building {
 	fullname: string;
 	shortname: string;
 	address: string;
-	lat: number;
-	lon: number;
+	lat: number | undefined;
+	lon: number | undefined;
 }
 interface GeoResponse {
 	lat?: number;
@@ -38,7 +38,7 @@ export class RoomParser extends Parsers<Room> {
 
 	public async parse(content: string): Promise<Room[]> {
 		let zip = await this.unzip(content);
-		const indexFilesB = zip.file(/index\.htm$/);
+		const indexFilesB = zip.file(/^index\.htm$/i);
 		if (indexFilesB.length === 0) {
 			throw new InsightError("invalid files path");
 		}
@@ -60,7 +60,10 @@ export class RoomParser extends Parsers<Room> {
 			const indexRoom = await file.async("text");
 			const parsedHTMRoom = parse5.parse(indexRoom);
 			const room = await this.roomBuilder(b, parsedHTMRoom);
-			rooms.concat(room);
+			rooms.push(...room);
+		}
+		if (rooms.length === 0) {
+			throw new InsightError("No valid Rooms)");
 		}
 		return rooms;
 	}
@@ -70,7 +73,7 @@ export class RoomParser extends Parsers<Room> {
 		let rows = this.findNodes(parsedHTM, (node) => node.tagName === "tr");
 		if (rows.length === 0) return buildings;
 		for (const row of rows) {
-			const b: building = { fullname: "", shortname: "", href: "", address: "", lat: 0, lon: 0 };
+			const b: building = { fullname: "", shortname: "", href: "", address: "", lat: undefined, lon: undefined };
 			if (!row.childNodes) continue;
 			for (const element of row.childNodes) {
 				if (element.tagName === "td") {
@@ -99,8 +102,8 @@ export class RoomParser extends Parsers<Room> {
 				b.fullname.length > 0 &&
 				b.shortname.length > 0 &&
 				b.address.length > 0 &&
-				// b.lat != 0 &&
-				// b.lon != 0 &&
+				b.lat != undefined &&
+				b.lon != undefined &&
 				b.href.length > 0
 			) {
 				buildings.push(b);
@@ -108,13 +111,38 @@ export class RoomParser extends Parsers<Room> {
 		}
 		return buildings;
 	}
+	// 	private findRoomTable(parsedHTM: any): any | null {
+	// 		const required = [
+	// 			"views-field-field-room-number",
+	// 			"views-field-field-room-capacity",
+	// 			"views-field-field-room-furniture",
+	// 			"views-field-field-room-type",
+	// 		];
+
+	// 		let tables = this.findNodes(parsedHTM, (node) => node && node.tagName === "table");
+	// 		console.log(tables.length);
+	// 		const candidates = tables.filter((table) => {
+	// 			const cells = this.findNodes(table, (node) => node && (node.tagName === "td" || node.tagName === "th"));
+	// 			const seen = new Set<string>();
+	// 			for (const cell of cells) {
+	// 				const cls = this.getAttr(cell, "class");
+	// 				for (const req of required) if (cls.includes(req)) seen.add(req);
+	// 			}
+	// 			return seen.size === required.length; // AND: all 4 classes appear somewhere in this table
+	// 		});
+	// 		console.log(candidates);
+	// 		return candidates.length === 1 ? candidates[0] : null; // 0 or >1 → null (skip building)
+	// 	}
 
 	private async roomBuilder(b: building, parsedHTM: any): Promise<Room[]> {
+		// 		if (!this.findRoomTable(parsedHTM)) {
+		// 			throw new InsightError("room table invalid");
+		// 		}
 		const rooms: Room[] = [];
 		let rows = this.findNodes(parsedHTM, (node) => node && node.tagName === "tr");
 		if (rows.length === 0) return rooms;
 		for (const row of rows) {
-			let room: Room = { ...b, number: "", name: "", seats: 0, type: "", furniture: "" };
+			let room: Room = { ...b, number: "", name: "", seats: undefined, type: "", furniture: "" };
 			if (row.childNodes.length === 0) continue;
 			for (const element of row.childNodes) {
 				if (element.tagName === "td") {
@@ -139,12 +167,13 @@ export class RoomParser extends Parsers<Room> {
 				room.shortname.length > 0 &&
 				room.number.length > 0 &&
 				room.address.length > 0 &&
-				isFinite(room.lat) &&
-				isFinite(room.lon) &&
-				isFinite(room.seats) &&
+				room.lat != undefined &&
+				room.lon != undefined &&
 				room.href.length > 0
 			) {
-				room.name = room.shortname + "_" + room.number;
+				if (room.number != undefined) {
+					room.name = room.shortname + "_" + room.number;
+				}
 				rooms.push(room);
 			}
 		}
