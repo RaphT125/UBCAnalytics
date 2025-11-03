@@ -103,9 +103,8 @@ export default class InsightFacade implements IInsightFacade {
 			const p = `${directory}/${kinds[i]}/${id}`;
 			try {
 				await fsPromises.access(p);
-				return p; // first match
+				return p;
 			} catch {
-				// keep searching
 			}
 		}
 		return null;
