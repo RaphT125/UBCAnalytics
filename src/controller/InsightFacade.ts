@@ -104,8 +104,7 @@ export default class InsightFacade implements IInsightFacade {
 			try {
 				await fsPromises.access(p);
 				return p;
-			} catch {
-			}
+			} catch {}
 		}
 		return null;
 	}
