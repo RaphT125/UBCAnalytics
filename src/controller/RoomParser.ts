@@ -73,7 +73,7 @@ export class RoomParser extends Parsers<Room> {
 		let rows = this.findNodes(parsedHTM, (node) => node.tagName === "tr");
 		if (rows.length === 0) return buildings;
 		for (const row of rows) {
-			const b: building = { fullname: "", shortname: "", href: "", address: "", lat: undefined, lon: undefined };
+			const b: building = { fullname: "", shortname: "", href: "", address: "", lat: 0, lon: 0 };
 			if (!row.childNodes) continue;
 			for (const element of row.childNodes) {
 				if (element.tagName === "td") {
@@ -111,33 +111,31 @@ export class RoomParser extends Parsers<Room> {
 		}
 		return buildings;
 	}
-	// 	private findRoomTable(parsedHTM: any): any | null {
-	// 		const required = [
-	// 			"views-field-field-room-number",
-	// 			"views-field-field-room-capacity",
-	// 			"views-field-field-room-furniture",
-	// 			"views-field-field-room-type",
-	// 		];
-
-	// 		let tables = this.findNodes(parsedHTM, (node) => node && node.tagName === "table");
-	// 		console.log(tables.length);
-	// 		const candidates = tables.filter((table) => {
-	// 			const cells = this.findNodes(table, (node) => node && (node.tagName === "td" || node.tagName === "th"));
-	// 			const seen = new Set<string>();
-	// 			for (const cell of cells) {
-	// 				const cls = this.getAttr(cell, "class");
-	// 				for (const req of required) if (cls.includes(req)) seen.add(req);
-	// 			}
-	// 			return seen.size === required.length; // AND: all 4 classes appear somewhere in this table
-	// 		});
-	// 		console.log(candidates);
-	// 		return candidates.length === 1 ? candidates[0] : null; // 0 or >1 → null (skip building)
-	// 	}
+	private findRoomTable(parsedHTM: any): any {
+		const required = [
+			"views-field-field-room-number",
+			"views-field-field-room-capacity",
+			"views-field-field-room-furniture",
+			"views-field-field-room-type",
+		];
+		//debugged using AI
+		let tables = this.findNodes(parsedHTM, (node) => node && node.tagName === "table");
+		const roomTable = tables.filter((table) => {
+			const roomHeading = this.findNodes(table, (node) => node && node.tagName === "td");
+			const seen = new Set<string>();
+			for (const headings of roomHeading) {
+				const cell = this.getAttr(headings, "class");
+				for (const req of required) if (cell.includes(req)) seen.add(req);
+			}
+			return seen.size === required.length;
+		});
+		return roomTable;
+	}
 
 	private async roomBuilder(b: building, parsedHTM: any): Promise<Room[]> {
-		// 		if (!this.findRoomTable(parsedHTM)) {
-		// 			throw new InsightError("room table invalid");
-		// 		}
+		if (this.findRoomTable(parsedHTM).length > 1) {
+			throw new InsightError("rooms is invalid");
+		}
 		const rooms: Room[] = [];
 		let rows = this.findNodes(parsedHTM, (node) => node && node.tagName === "tr");
 		if (rows.length === 0) return rooms;
@@ -171,9 +169,7 @@ export class RoomParser extends Parsers<Room> {
 				room.lon != undefined &&
 				room.href.length > 0
 			) {
-				if (room.number != undefined) {
-					room.name = room.shortname + "_" + room.number;
-				}
+				room.name = room.shortname + "_" + room.number;
 				rooms.push(room);
 			}
 		}

@@ -27,11 +27,17 @@ describe("InsightFacade", function () {
 	let sections: string;
 	let valid: string;
 	let campus: string;
+	let invalidRoom: string;
+	let invalidIndex: string;
+	let invalidBuildings: string;
 	before(async function () {
 		// This block runs once and loads the datasets.
 		sections = await getContentFromArchives("pair.zip");
 		valid = await getContentFromArchives("valid.zip");
 		campus = await getContentFromArchives("campus.zip");
+		invalidRoom = await getContentFromArchives("invalidRoom.zip");
+		invalidIndex = await getContentFromArchives("noIndex.zip");
+		invalidBuildings = await getContentFromArchives("noBuildings.zip");
 
 		// Just in case there is anything hanging around from a previous run of the test suite
 		await clearDisk();
@@ -194,6 +200,31 @@ describe("InsightFacade", function () {
 			}
 		});
 		//bad input file
+		it("Should reject invalid room", async function () {
+			try {
+				await facade.addDataset("ubc3", invalidRoom, InsightDatasetKind.Rooms);
+				expect.fail("An Error Should have been thrown");
+			} catch (error) {
+				expect(error).to.be.instanceof(InsightError);
+			}
+		});
+		it("Should reject no buildings in room zip", async function () {
+			try {
+				await facade.addDataset("ubc3", invalidBuildings, InsightDatasetKind.Rooms);
+				expect.fail("An Error Should have been thrown");
+			} catch (error) {
+				expect(error).to.be.instanceof(InsightError);
+			}
+		});
+		it("Should reject no index in room zip", async function () {
+			try {
+				await facade.addDataset("ubc3", invalidIndex, InsightDatasetKind.Rooms);
+				expect.fail("An Error Should have been thrown");
+			} catch (error) {
+				expect(error).to.be.instanceof(InsightError);
+			}
+		});
+
 		it("Should reject fake zip file", async function () {
 			try {
 				await facade.addDataset("ubc3", "pretendToBeAZip", InsightDatasetKind.Sections);
