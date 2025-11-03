@@ -73,7 +73,7 @@ export class RoomParser extends Parsers<Room> {
 		let rows = this.findNodes(parsedHTM, (node) => node.tagName === "tr");
 		if (rows.length === 0) return buildings;
 		for (const row of rows) {
-			const b: building = { fullname: "", shortname: "", href: "", address: "", lat: 0, lon: 0 };
+			const b: building = { fullname: "", shortname: "", href: "", address: "", lat: undefined, lon: undefined };
 			if (!row.childNodes) continue;
 			for (const element of row.childNodes) {
 				if (element.tagName === "td") {
