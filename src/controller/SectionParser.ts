@@ -1,4 +1,4 @@
-import { InsightError, InsightDatasetKind } from "./IInsightFacade";
+import { InsightError } from "./IInsightFacade";
 import { Parsers } from "./Parsers";
 
 export interface Section {

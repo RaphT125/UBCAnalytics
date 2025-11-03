@@ -92,33 +92,31 @@ export default class InsightFacade implements IInsightFacade {
 			throw new InsightError(" id is invalid");
 		}
 
-		if (await this.duplicateID(id)) {
+		if (await this.findDatasetPath(id)) {
 			throw new InsightError(" id duplicate");
 		}
 	}
 
-	private async duplicateID(id: string): Promise<boolean> {
+	private async findDatasetPath(id: string): Promise<string | null> {
 		const kinds = Object.values(InsightDatasetKind);
-		const results = await Promise.all(
-			kinds.map(async (kind) => {
-				try {
-					await fsPromises.access(`${directory}/${kind}/${id}`);
-					return true;
-				} catch (err: any) {
-					return false;
-				}
-			})
-		);
-		return results.some(Boolean);
+		for (let i = 0; i < kinds.length; i++) {
+			const p = `${directory}/${kinds[i]}/${id}`;
+			try {
+				await fsPromises.access(p);
+				return p; // first match
+			} catch {
+				// keep searching
+			}
+		}
+		return null;
 	}
 
 	public async removeDataset(id: string): Promise<string> {
 		if (id.trim() === "" || id.includes("_")) {
 			throw new InsightError(" id is invalid");
 		}
-		const exists = await this.duplicateID(id);
-		if (exists) {
-			const path = directory + "/" + "sections" + "/" + id;
+		const path = await this.findDatasetPath(id);
+		if (path) {
 			try {
 				await fsPromises.unlink(path);
 				return id;

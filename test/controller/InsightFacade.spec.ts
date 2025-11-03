@@ -26,10 +26,12 @@ describe("InsightFacade", function () {
 	// Declare datasets used in tests. You should add more datasets like this!
 	let sections: string;
 	let valid: string;
+	let campus: string;
 	before(async function () {
 		// This block runs once and loads the datasets.
 		sections = await getContentFromArchives("pair.zip");
 		valid = await getContentFromArchives("valid.zip");
+		campus = await getContentFromArchives("campus.zip");
 
 		// Just in case there is anything hanging around from a previous run of the test suite
 		await clearDisk();
