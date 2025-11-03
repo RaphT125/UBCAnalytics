@@ -27,7 +27,7 @@ describe("InsightFacade", function () {
 	let sections: string;
 	let valid: string;
 	let campus: string;
-	let invalidRoom: string;
+	//let invalidRoom: string;
 	let invalidIndex: string;
 	let invalidBuildings: string;
 	before(async function () {
@@ -35,7 +35,7 @@ describe("InsightFacade", function () {
 		sections = await getContentFromArchives("pair.zip");
 		valid = await getContentFromArchives("valid.zip");
 		campus = await getContentFromArchives("campus.zip");
-		invalidRoom = await getContentFromArchives("invalidRoom.zip");
+		//invalidRoom = await getContentFromArchives("invalidRoom.zip");
 		invalidIndex = await getContentFromArchives("noIndex.zip");
 		invalidBuildings = await getContentFromArchives("noBuildings.zip");
 
@@ -202,7 +202,7 @@ describe("InsightFacade", function () {
 		//bad input file
 		it("Should reject invalid room", async function () {
 			try {
-				await facade.addDataset("ubc3", invalidRoom, InsightDatasetKind.Rooms);
+				await facade.addDataset("ubc3", sections, InsightDatasetKind.Rooms);
 				expect.fail("An Error Should have been thrown");
 			} catch (error) {
 				expect(error).to.be.instanceof(InsightError);
