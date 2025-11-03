@@ -163,10 +163,13 @@ export class RoomParser extends Parsers<Room> {
 			if (
 				room.fullname.length > 0 &&
 				room.shortname.length > 0 &&
+				room.furniture.length > 0 &&
+				room.type.length > 0 &&
 				room.number.length > 0 &&
 				room.address.length > 0 &&
 				room.lat != undefined &&
 				room.lon != undefined &&
+				room.seats != undefined &&
 				room.href.length > 0
 			) {
 				room.name = room.shortname + "_" + room.number;
