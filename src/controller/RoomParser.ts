@@ -94,7 +94,7 @@ export class RoomParser extends Parsers<Room> {
 							b.lat = geoLocaiton.lat as number;
 						}
 					} else if (classValue.includes("views-field-field-building-code")) {
-						b.shortname = this.getContent(element);
+						b.shortname = this.getContent(element).trim() as string;
 					}
 				}
 			}
