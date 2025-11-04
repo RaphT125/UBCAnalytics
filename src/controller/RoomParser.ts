@@ -97,7 +97,7 @@ export class RoomParser extends Parsers<Room> {
 
 	private async buildingList(parsedHTM: any): Promise<building[]> {
 		const tableCheck = this.findTable(parsedHTM, buildingFields);
-		if (tableCheck.length > 1 || tableCheck === 0) {
+		if (tableCheck.length > 1 || tableCheck.length === 0) {
 			throw new InsightError("rooms is invalid");
 		}
 		const buildings: building[] = [];
@@ -146,21 +146,6 @@ export class RoomParser extends Parsers<Room> {
 		}
 		return buildings;
 	}
-	// private findRoomTable(parsedHTM: any): any {
-	//
-	// 	//debugged using AI
-	// 	let tables = this.findNodes(parsedHTM, "table");
-	// 	const roomTable = tables.filter((table) => {
-	// 		const roomHeading = this.findNodes(table, "td");
-	// 		const seen = new Set<string>();
-	// 		for (const headings of roomHeading) {
-	// 			const cell = this.getAttr(headings, "class");
-	// 			for (const req of required) if (cell.includes(req)) seen.add(req);
-	// 		}
-	// 		return seen.size === required.length;
-	// 	});
-	// 	return roomTable;
-	// }
 
 	private async roomBuilder(b: building, parsedHTM: any): Promise<Room[]> {
 		if (this.findTable(parsedHTM, roomFields).length > 1) {
