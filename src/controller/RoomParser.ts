@@ -83,7 +83,7 @@ export class RoomParser extends Parsers<Room> {
 	private findTable(parsedHTM: any, type: string[]): any {
 		//debugged using AI
 		let tables = this.findNodes(parsedHTM, "table");
-		const table = tables.filter((table) => {
+		const t = tables.filter((table) => {
 			const headings = this.findNodes(table, "td");
 			const seen = new Set<string>();
 			for (const heading of headings) {
@@ -92,12 +92,12 @@ export class RoomParser extends Parsers<Room> {
 			}
 			return seen.size === type.length;
 		});
-		return table;
+		return t;
 	}
 
 	private async buildingList(parsedHTM: any): Promise<building[]> {
 		const tableCheck = this.findTable(parsedHTM, buildingFields);
-		if (tableCheck.length > 1 || tableCheck.length === 0) {
+		if (tableCheck.length != 1) {
 			throw new InsightError("rooms is invalid");
 		}
 		const buildings: building[] = [];
