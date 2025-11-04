@@ -30,6 +30,19 @@ interface GeoResponse {
 	lon?: number;
 	error?: string;
 }
+const buildingFields = [
+	"views-field-field-building-image",
+	"views-field-field-building-code",
+	"views-field-title",
+	"views-field-field-building-address",
+	"views-field-nothing",
+];
+const roomFields = [
+	"views-field-field-room-number",
+	"views-field-field-room-capacity",
+	"views-field-field-room-furniture",
+	"views-field-field-room-type",
+];
 
 export class RoomParser extends Parsers<Room> {
 	constructor(directory: string) {
@@ -67,11 +80,35 @@ export class RoomParser extends Parsers<Room> {
 		}
 		return rooms;
 	}
+	private findTable(parsedHTM: any, type: string): any {
+		//debugged using AI
+		let tables = this.findNodes(parsedHTM, "table");
+		const buildingTable = tables.filter((table) => {
+			const roomHeading = this.findNodes(table, "td");
+			const seen = new Set<string>();
+			for (const headings of roomHeading) {
+				const cell = this.getAttr(headings, "class");
+				if (type === "building") {
+					for (const req of buildingFields) if (cell.includes(req)) seen.add(req);
+					return seen.size === buildingFields.length;
+				} else if (type === "room") {
+					for (const req of roomFields) if (cell.includes(req)) seen.add(req);
+					return seen.size === roomFields.length;
+				} else {
+					throw new InsightError("Does not contain any valid table");
+				}
+			}
+		});
+		return buildingTable;
+	}
 
 	private async buildingList(parsedHTM: any): Promise<building[]> {
+		const tableCheck = this.findTable(parsedHTM, "building");
+		if (tableCheck.length > 1 || tableCheck === 0) {
+			throw new InsightError("rooms is invalid");
+		}
 		const buildings: building[] = [];
 		let rows = this.findNodes(parsedHTM, "tr");
-		if (rows.length === 0) return buildings;
 		for (const row of rows) {
 			const b: building = { fullname: "", shortname: "", href: "", address: "", lat: undefined, lon: undefined };
 			if (!row.childNodes) continue;
@@ -116,29 +153,8 @@ export class RoomParser extends Parsers<Room> {
 		}
 		return buildings;
 	}
-	private findRoomTable(parsedHTM: any): any {
-		const required = [
-			"views-field-field-room-number",
-			"views-field-field-room-capacity",
-			"views-field-field-room-furniture",
-			"views-field-field-room-type",
-		];
-		//debugged using AI
-		let tables = this.findNodes(parsedHTM, "table");
-		const roomTable = tables.filter((table) => {
-			const roomHeading = this.findNodes(table, "td");
-			const seen = new Set<string>();
-			for (const headings of roomHeading) {
-				const cell = this.getAttr(headings, "class");
-				for (const req of required) if (cell.includes(req)) seen.add(req);
-			}
-			return seen.size === required.length;
-		});
-		return roomTable;
-	}
-
 	private async roomBuilder(b: building, parsedHTM: any): Promise<Room[]> {
-		if (this.findRoomTable(parsedHTM).length > 1) {
+		if (this.findTable(parsedHTM, "room").length > 1) {
 			throw new InsightError("rooms is invalid");
 		}
 		const rooms: Room[] = [];
