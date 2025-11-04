@@ -70,7 +70,7 @@ export class RoomParser extends Parsers<Room> {
 
 	private async buildingList(parsedHTM: any): Promise<building[]> {
 		const buildings: building[] = [];
-		let rows = this.findNodes(parsedHTM, (node) => node.tagName === "tr");
+		let rows = this.findNodes(parsedHTM, "tr");
 		if (rows.length === 0) return buildings;
 		for (const row of rows) {
 			const b: building = { fullname: "", shortname: "", href: "", address: "", lat: undefined, lon: undefined };
@@ -125,9 +125,9 @@ export class RoomParser extends Parsers<Room> {
 			"views-field-field-room-type",
 		];
 		//debugged using AI
-		let tables = this.findNodes(parsedHTM, (node) => node && node.tagName === "table");
+		let tables = this.findNodes(parsedHTM, "table");
 		const roomTable = tables.filter((table) => {
-			const roomHeading = this.findNodes(table, (node) => node && node.tagName === "td");
+			const roomHeading = this.findNodes(table, "td");
 			const seen = new Set<string>();
 			for (const headings of roomHeading) {
 				const cell = this.getAttr(headings, "class");
@@ -143,7 +143,7 @@ export class RoomParser extends Parsers<Room> {
 			throw new InsightError("rooms is invalid");
 		}
 		const rooms: Room[] = [];
-		let rows = this.findNodes(parsedHTM, (node) => node && node.tagName === "tr");
+		let rows = this.findNodes(parsedHTM, "tr");
 		if (rows.length === 0) return rooms;
 		for (const row of rows) {
 			let room: Room = { ...b, number: "", name: "", seats: undefined, type: "", furniture: "" };
@@ -197,15 +197,23 @@ export class RoomParser extends Parsers<Room> {
 		return rooms;
 	}
 
-	private findNodes(parsed: any, predicate: (node: any) => boolean): any[] {
+	private findNodes(parsed: any, value: string): any[] {
 		let nodes: any[] = [];
-		if (predicate(parsed)) {
-			nodes.push(parsed);
-		} else {
-			if (parsed.childNodes) {
-				for (const child of parsed.childNodes) {
-					nodes.push(...this.findNodes(child, predicate));
-				}
+		let queue: any[] = [parsed];
+		while (queue.length > 0) {
+			let currNodes = queue.shift();
+			if (!currNodes) {
+				continue;
+			}
+			if (currNodes.tagName === value) {
+				nodes.push(currNodes);
+				continue;
+			}
+			if (!Array.isArray(currNodes.childNodes)) {
+				continue;
+			}
+			for (let child of currNodes.childNodes) {
+				queue.push(child);
 			}
 		}
 		return nodes;
