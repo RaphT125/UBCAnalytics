@@ -224,6 +224,14 @@ describe("InsightFacade", function () {
 				expect(error).to.be.instanceof(InsightError);
 			}
 		});
+		// it("Should reject 2 table in room zip", async function () {
+		// 	try {
+		// 		await facade.addDataset("ubc3", invalidRoom, InsightDatasetKind.Rooms);
+		// 		expect.fail("An Error Should have been thrown");
+		// 	} catch (error) {
+		// 		expect(error).to.be.instanceof(InsightError);
+		// 	}
+		// });
 
 		it("Should reject fake zip file", async function () {
 			try {
