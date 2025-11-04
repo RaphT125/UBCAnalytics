@@ -1,6 +1,6 @@
 import JSZip from "jszip";
 
-import { InsightDatasetKind, InsightError } from "./IInsightFacade";
+import { InsightError } from "./IInsightFacade";
 
 export abstract class Parsers<T> {
 	protected readonly directory: string;
