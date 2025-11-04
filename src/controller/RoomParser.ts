@@ -77,14 +77,14 @@ export class RoomParser extends Parsers<Room> {
 			if (!row.childNodes) continue;
 			for (const element of row.childNodes) {
 				if (element.tagName === "td") {
-					const classValue = this.getAttr(element, "class") ?? "";
-					if (classValue.includes("views-field-title")) {
+					const classAttribute = this.getAttr(element, "class") ?? "";
+					if (classAttribute.includes("views-field-title")) {
 						const a = (element.childNodes ?? []).find((c: any) => c.tagName === "a");
 						if (a) {
 							b.fullname = this.getContent(a).trim() as string;
 							b.href = this.getAttr(a, "href").trim();
 						}
-					} else if (classValue.includes("views-field-field-building-address")) {
+					} else if (classAttribute.includes("views-field-field-building-address")) {
 						b.address = this.getContent(element).trim() as string;
 						const geoLocaiton = await this.geolocator(b.address);
 						if (geoLocaiton.error) {
@@ -93,7 +93,7 @@ export class RoomParser extends Parsers<Room> {
 							b.lon = geoLocaiton.lon as number;
 							b.lat = geoLocaiton.lat as number;
 						}
-					} else if (classValue.includes("views-field-field-building-code")) {
+					} else if (classAttribute.includes("views-field-field-building-code")) {
 						b.shortname = this.getContent(element).trim() as string;
 					}
 				}
@@ -144,18 +144,18 @@ export class RoomParser extends Parsers<Room> {
 			if (row.childNodes.length === 0) continue;
 			for (const element of row.childNodes) {
 				if (element.tagName === "td") {
-					const classValue = this.getAttr(element, "class") ?? "";
-					if (classValue.includes("views-field-field-room-capacity")) {
+					const classAttribute = this.getAttr(element, "class") ?? "";
+					if (classAttribute.includes("views-field-field-room-capacity")) {
 						room.seats = parseInt(this.getContent(element));
-					} else if (classValue.includes("views-field-field-room-number")) {
+					} else if (classAttribute.includes("views-field-field-room-number")) {
 						const a = (element.childNodes ?? []).find((c: any) => c.tagName === "a");
 						if (a) {
 							room.number = this.getContent(a).trim() as string;
 							room.href = this.getAttr(a, "href").trim();
 						}
-					} else if (classValue.includes("views-field-field-room-furniture")) {
+					} else if (classAttribute.includes("views-field-field-room-furniture")) {
 						room.furniture = this.getContent(element).trim() as string;
-					} else if (classValue.includes("views-field-field-room-type")) {
+					} else if (classAttribute.includes("views-field-field-room-type")) {
 						room.type = this.getContent(element).trim() as string;
 					}
 				}
