@@ -75,33 +75,32 @@ export class RoomParser extends Parsers<Room> {
 		for (const row of rows) {
 			const b: building = { fullname: "", shortname: "", href: "", address: "", lat: undefined, lon: undefined };
 			if (!row.childNodes) continue;
-			for (const element of row.childNodes) {
-				if (element.tagName === "td") {
-					const classAttributes = new Set((this.getAttr(element, "class") ?? "").split(/\s+/).filter(Boolean));
-					switch (true) {
-						case classAttributes.has("views-field-title"):
-							const a = (element.childNodes ?? []).find((c: any) => c.tagName === "a");
-							if (a) {
-								b.fullname = this.getContent(a).trim();
-								b.href = this.getAttr(a, "href").trim();
-							}
-							break;
+			let rowsChild = this.findNodes(row, "td");
+			for (const element of rowsChild) {
+				const classAttributes = new Set((this.getAttr(element, "class") ?? "").split(/\s+/).filter(Boolean));
+				switch (true) {
+					case classAttributes.has("views-field-title"):
+						const a = (element.childNodes ?? []).find((c: any) => c.tagName === "a");
+						if (a) {
+							b.fullname = this.getContent(a).trim();
+							b.href = this.getAttr(a, "href").trim();
+						}
+						break;
 
-						case classAttributes.has("views-field-field-building-address"):
-							b.address = this.getContent(element).trim();
-							const geo = await this.geolocator(b.address);
-							if (geo.error) throw new InsightError("geolocation error for: " + b.address);
-							b.lat = geo.lat;
-							b.lon = geo.lon;
-							break;
+					case classAttributes.has("views-field-field-building-address"):
+						b.address = this.getContent(element).trim();
+						const geo = await this.geolocator(b.address);
+						if (geo.error) throw new InsightError("geolocation error for: " + b.address);
+						b.lat = geo.lat;
+						b.lon = geo.lon;
+						break;
 
-						case classAttributes.has("views-field-field-building-code"):
-							b.shortname = this.getContent(element).trim();
-							break;
+					case classAttributes.has("views-field-field-building-code"):
+						b.shortname = this.getContent(element).trim();
+						break;
 
-						default:
-							break;
-					}
+					default:
+						break;
 				}
 			}
 			if (
@@ -147,35 +146,34 @@ export class RoomParser extends Parsers<Room> {
 		if (rows.length === 0) return rooms;
 		for (const row of rows) {
 			let room: Room = { ...b, number: "", name: "", seats: undefined, type: "", furniture: "" };
-			if (row.childNodes.length === 0) continue;
-			for (const element of row.childNodes) {
-				if (element.tagName === "td") {
-					const classAttributes = new Set((this.getAttr(element, "class") ?? "").split(/\s+/).filter(Boolean));
+			if (!row.childNodes.length) continue;
+			let rowsChild = this.findNodes(row, "td");
+			for (const element of rowsChild) {
+				const classAttributes = new Set((this.getAttr(element, "class") ?? "").split(/\s+/).filter(Boolean));
 
-					switch (true) {
-						case classAttributes.has("views-field-field-room-number"):
-							const a = (element.childNodes ?? []).find((c: any) => c.tagName === "a");
-							if (a) {
-								room.number = this.getContent(a).trim();
-								room.href = this.getAttr(a, "href").trim();
-							}
-							break;
+				switch (true) {
+					case classAttributes.has("views-field-field-room-number"):
+						const a = (element.childNodes ?? []).find((c: any) => c.tagName === "a");
+						if (a) {
+							room.number = this.getContent(a).trim();
+							room.href = this.getAttr(a, "href").trim();
+						}
+						break;
 
-						case classAttributes.has("views-field-field-room-capacity"):
-							room.seats = parseInt(this.getContent(element).trim(), 10);
-							break;
+					case classAttributes.has("views-field-field-room-capacity"):
+						room.seats = parseInt(this.getContent(element).trim(), 10);
+						break;
 
-						case classAttributes.has("views-field-field-room-furniture"):
-							room.furniture = this.getContent(element).trim();
-							break;
+					case classAttributes.has("views-field-field-room-furniture"):
+						room.furniture = this.getContent(element).trim();
+						break;
 
-						case classAttributes.has("views-field-field-room-type"):
-							room.type = this.getContent(element).trim();
-							break;
+					case classAttributes.has("views-field-field-room-type"):
+						room.type = this.getContent(element).trim();
+						break;
 
-						default:
-							break;
-					}
+					default:
+						break;
 				}
 			}
 			if (
@@ -234,10 +232,7 @@ export class RoomParser extends Parsers<Room> {
 		if (!element) return "";
 		if (element.nodeName === "#text") return element.value ?? "";
 		const kids = element.childNodes ?? [];
-		return kids
-			.map((c: any) => this.getContent(c))
-			.join("")
-			.trim();
+		return kids.map((c: any) => this.getContent(c)).join("");
 	}
 
 	private geolocator(address: string): Promise<GeoResponse> {
