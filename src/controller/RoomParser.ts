@@ -73,7 +73,9 @@ export class RoomParser extends Parsers<Room> {
 			const indexRoom = await file.async("text");
 			const parsedHTMRoom = parse5.parse(indexRoom);
 			const room = await this.roomBuilder(b, parsedHTMRoom);
-			rooms.push(...room);
+			if (room.length > 0) {
+				rooms.push(...room);
+			}
 		}
 		if (rooms.length === 0) {
 			throw new InsightError("No valid Rooms)");
@@ -101,7 +103,7 @@ export class RoomParser extends Parsers<Room> {
 			throw new InsightError("rooms is invalid");
 		}
 		const buildings: building[] = [];
-		let rows = this.findNodes(parsedHTM, "tr");
+		let rows = this.findNodes(tableCheck[0], "tr");
 		for (const row of rows) {
 			const b: building = { fullname: "", shortname: "", href: "", address: "", lat: undefined, lon: undefined };
 			if (!row.childNodes) continue;
