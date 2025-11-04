@@ -7,9 +7,10 @@ import {
 	NotFoundError,
 	ResultTooLargeError,
 } from "./IInsightFacade";
-import JSZip from "jszip";
-
 import fsPromises from "fs-extra";
+import { Parsers } from "./Parsers";
+import { SectionParser } from "./SectionParser";
+import { RoomParser } from "./RoomParser";
 
 interface Section {
 	id: string;
@@ -31,135 +32,89 @@ interface Query {
 		ORDER?: string;
 	};
 }
-
-/**
- * This is the main programmatic entry point for the project.
- * Method documentation is in IInsightFacade
- *
- */
 const directory = "./data";
 export default class InsightFacade implements IInsightFacade {
+	//AI was used to help debug
 	public async addDataset(id: string, content: string, kind: InsightDatasetKind): Promise<string[]> {
 		try {
-			const parsed = await Promise.all([this.fileParser(content), this.idAndSectionChecker(id, kind)]);
-			await this.writeFile(id, parsed[0]);
+			const parser = this.getParser(kind);
+			await this.validateId(id);
+			const parsed = await parser.parse(content);
+			await this.writeFile(id, parsed, kind);
 		} catch (e) {
 			throw new InsightError("file parsing error" + e);
 		}
 
 		return await this.listID();
 	}
+	private getParser(kind: InsightDatasetKind): Parsers<any> {
+		switch (kind) {
+			case InsightDatasetKind.Sections:
+				return new SectionParser(directory);
+			case InsightDatasetKind.Rooms:
+				return new RoomParser(directory);
+			default:
+				throw new InsightError(" kind is invalid");
+		}
+	}
 
 	private async listID(): Promise<string[]> {
 		try {
-			return await fsPromises.readdir(directory + "/" + "sections");
+			const kinds = Object.values(InsightDatasetKind);
+			const results = await Promise.all(
+				kinds.map(async (kind) => {
+					const path = `${directory}/${kind}`;
+					try {
+						return await fsPromises.readdir(path);
+					} catch (err: any) {
+						return [];
+					}
+				})
+			);
+			return results.flat();
 		} catch (e) {
 			throw new InsightError("failed to access data directory");
 		}
 	}
 
-	private async writeFile(id: string, data: any[]): Promise<void> {
+	private async writeFile(id: string, data: any[], kind: InsightDatasetKind): Promise<void> {
 		try {
-			const kindDirect = directory + "/" + "sections";
+			const kindDirect = directory + "/" + kind;
 			const fileDirect = kindDirect + "/" + id;
 			await fsPromises.mkdir(kindDirect, { recursive: true });
 			await fsPromises.writeFile(fileDirect, JSON.stringify(data));
 		} catch (e) {
-			throw new InsightError("writeFile error");
+			throw new InsightError("writeFileSections error");
 		}
 	}
-	private async duplicateID(id: string): Promise<boolean> {
-		const fileDirect = directory + "/" + "sections" + "/" + id;
-		try {
-			await fsPromises.access(fileDirect);
-			return true;
-		} catch (e) {
-			return false;
-		}
-	}
-
-	private async idAndSectionChecker(id: string, kind: InsightDatasetKind): Promise<void> {
+	private async validateId(id: string): Promise<void> {
 		if (id.trim() === "" || id.includes("_")) {
 			throw new InsightError(" id is invalid");
 		}
-		if (kind !== InsightDatasetKind.Sections) {
-			throw new InsightError(" kind is invalid");
-		}
-		if (await this.duplicateID(id)) {
+
+		if (await this.findDatasetPath(id)) {
 			throw new InsightError(" id duplicate");
 		}
 	}
 
-	private async fileParser(content: string) {
-		let zip: JSZip;
-		try {
-			zip = await JSZip.loadAsync(content, { base64: true });
-		} catch {
-			throw new InsightError(" wrong file type");
-		}
-		const folder = zip.folder("courses");
-		if (!folder) {
-			throw new InsightError("invalid folder path");
-		}
-		const files = folder.file(/.*/);
-
-		if (files.length == 0) {
-			throw new InsightError("no files found");
-		} else {
-			const requiredFields = ["id", "Course", "Title", "Professor", "Subject", "Year", "Avg", "Pass", "Fail", "Audit"];
-			const numberFiled = ["Year", "Avg", "Pass", "Fail", "Audit"];
-			const fileContent = files.map(async (file) => {
-				const jsonContent = await file.async("text");
-				let parsed: any;
-				try {
-					parsed = JSON.parse(jsonContent);
-				} catch (e) {
-					return [];
-				}
-				if (!Array.isArray(parsed.result)) {
-					return [];
-				}
-				return parsed.result
-					.filter((entry: any) => requiredFields.every((key) => entry.hasOwnProperty(key)))
-					.map((entry: any) => {
-						const cleaned: any = {};
-						for (const key of requiredFields) {
-							if (numberFiled.includes(key)) {
-								const num = Number(entry[key]);
-								if (Number.isFinite(num)) {
-									cleaned[key] = num;
-								} else {
-									return null;
-								}
-							} else {
-								cleaned[key] = entry[key];
-							}
-						}
-						return cleaned;
-					})
-					.filter((entry: any) => entry !== null);
-			});
+	private async findDatasetPath(id: string): Promise<string | null> {
+		const kinds = Object.values(InsightDatasetKind);
+		for (let i = 0; i < kinds.length; i++) {
+			const p = `${directory}/${kinds[i]}/${id}`;
 			try {
-				const parsedFiles = await Promise.all(fileContent);
-				const flatResult = parsedFiles.flat();
-				if (flatResult.length == 0) {
-					throw new InsightError("file parsing error");
-				} else {
-					return flatResult;
-				}
-			} catch (e) {
-				throw new InsightError("invalid file entry");
-			}
+				await fsPromises.access(p);
+				return p;
+			} catch {}
 		}
+		return null;
 	}
 
 	public async removeDataset(id: string): Promise<string> {
 		if (id.trim() === "" || id.includes("_")) {
 			throw new InsightError(" id is invalid");
 		}
-		const exists = await this.duplicateID(id);
-		if (exists) {
-			const path = directory + "/" + "sections" + "/" + id;
+		const path = await this.findDatasetPath(id);
+		if (path) {
 			try {
 				await fsPromises.unlink(path);
 				return id;
@@ -404,7 +359,7 @@ export default class InsightFacade implements IInsightFacade {
 
 			if (
 				starCount > 2 ||
-				(starCount === 2 && !(firstStar === 0 && lastStar === pattern.length - 1)) ||
+				(starCount === 2 && firstStar !== 0) ||
 				(starCount === 1 && firstStar !== 0 && firstStar !== pattern.length - 1)
 			) {
 				throw new InsightError("Invalid wildcard usage");
@@ -427,7 +382,7 @@ export default class InsightFacade implements IInsightFacade {
 				const mappedField = this.getFieldName(fieldName);
 				let value = (section as any)[mappedField];
 
-				if (fieldName === "id") {
+				if (column === "sections_id") {
 					value = String(value);
 				}
 

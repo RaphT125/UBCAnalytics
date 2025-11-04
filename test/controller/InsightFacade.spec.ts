@@ -8,7 +8,6 @@ import {
 } from "../../src/controller/IInsightFacade";
 import InsightFacade from "../../src/controller/InsightFacade";
 import { clearDisk, getContentFromArchives, loadTestQuery } from "../TestUtil";
-
 import { expect, use } from "chai";
 import chaiAsPromised from "chai-as-promised";
 
@@ -27,10 +26,18 @@ describe("InsightFacade", function () {
 	// Declare datasets used in tests. You should add more datasets like this!
 	let sections: string;
 	let valid: string;
+	let campus: string;
+	//let invalidRoom: string;
+	let invalidIndex: string;
+	let invalidBuildings: string;
 	before(async function () {
 		// This block runs once and loads the datasets.
 		sections = await getContentFromArchives("pair.zip");
 		valid = await getContentFromArchives("valid.zip");
+		campus = await getContentFromArchives("campus.zip");
+		//invalidRoom = await getContentFromArchives("invalidRoom.zip");
+		invalidIndex = await getContentFromArchives("noIndex.zip");
+		invalidBuildings = await getContentFromArchives("noBuildings.zip");
 
 		// Just in case there is anything hanging around from a previous run of the test suite
 		await clearDisk();
@@ -62,6 +69,23 @@ describe("InsightFacade", function () {
 			try {
 				await facade.addDataset("ubc", sections, InsightDatasetKind.Sections);
 				const result = await facade.addDataset("ubc2", sections, InsightDatasetKind.Sections);
+				expect(result).to.deep.equal(["ubc", "ubc2"]);
+			} catch (error) {
+				expect.fail("An Error Should not have been thrown" + error);
+			}
+		});
+		it("should successfully add  room", async function () {
+			try {
+				const result = await facade.addDataset("ubc", campus, InsightDatasetKind.Rooms);
+				expect(result).to.deep.equal(["ubc"]);
+			} catch (error) {
+				expect.fail("An Error Should not have been thrown" + error);
+			}
+		});
+		it("should successfully add  multiple room", async function () {
+			try {
+				await facade.addDataset("ubc", campus, InsightDatasetKind.Rooms);
+				const result = await facade.addDataset("ubc2", campus, InsightDatasetKind.Rooms);
 				expect(result).to.deep.equal(["ubc", "ubc2"]);
 			} catch (error) {
 				expect.fail("An Error Should not have been thrown" + error);
@@ -176,6 +200,39 @@ describe("InsightFacade", function () {
 			}
 		});
 		//bad input file
+		it("Should reject invalid room", async function () {
+			try {
+				await facade.addDataset("ubc3", sections, InsightDatasetKind.Rooms);
+				expect.fail("An Error Should have been thrown");
+			} catch (error) {
+				expect(error).to.be.instanceof(InsightError);
+			}
+		});
+		it("Should reject no buildings in room zip", async function () {
+			try {
+				await facade.addDataset("ubc3", invalidBuildings, InsightDatasetKind.Rooms);
+				expect.fail("An Error Should have been thrown");
+			} catch (error) {
+				expect(error).to.be.instanceof(InsightError);
+			}
+		});
+		it("Should reject no index in room zip", async function () {
+			try {
+				await facade.addDataset("ubc3", invalidIndex, InsightDatasetKind.Rooms);
+				expect.fail("An Error Should have been thrown");
+			} catch (error) {
+				expect(error).to.be.instanceof(InsightError);
+			}
+		});
+		// it("Should reject 2 table in room zip", async function () {
+		// 	try {
+		// 		await facade.addDataset("ubc3", invalidRoom, InsightDatasetKind.Rooms);
+		// 		expect.fail("An Error Should have been thrown");
+		// 	} catch (error) {
+		// 		expect(error).to.be.instanceof(InsightError);
+		// 	}
+		// });
+
 		it("Should reject fake zip file", async function () {
 			try {
 				await facade.addDataset("ubc3", "pretendToBeAZip", InsightDatasetKind.Sections);
@@ -202,14 +259,14 @@ describe("InsightFacade", function () {
 				expect(error).to.be.instanceof(InsightError);
 			}
 		});
-		it("should fail, room has not been added", async function () {
-			try {
-				await facade.addDataset("ubc3", valid, InsightDatasetKind.Rooms);
-				expect.fail("An Error Should have been thrown");
-			} catch (error) {
-				expect(error).to.be.instanceof(InsightError);
-			}
-		});
+		// it("should fail, room has not been added", async function () {
+		// 	try {
+		// 		await facade.addDataset("ubc3", valid, InsightDatasetKind.Rooms);
+		// 		expect.fail("An Error Should have been thrown");
+		// 	} catch (error) {
+		// 		expect(error).to.be.instanceof(InsightError);
+		// 	}
+		// });
 	});
 
 	describe("RemoveDataset", function () {
