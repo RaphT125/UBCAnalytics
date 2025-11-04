@@ -84,7 +84,7 @@ export class RoomParser extends Parsers<Room> {
 		//debugged using AI
 		let tables = this.findNodes(parsedHTM, "table");
 		const t = tables.filter((table) => {
-			const headings = this.findNodes(table, "td");
+			const headings = this.findNodes(table, "th");
 			const seen = new Set<string>();
 			for (const heading of headings) {
 				const cell = this.getAttr(heading, "class");
