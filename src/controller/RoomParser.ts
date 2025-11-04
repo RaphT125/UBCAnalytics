@@ -230,9 +230,20 @@ export class RoomParser extends Parsers<Room> {
 
 	private getContent(element: any): any {
 		if (!element) return "";
-		if (element.nodeName === "#text") return element.value ?? "";
-		const kids = element.childNodes ?? [];
-		return kids.map((c: any) => this.getContent(c)).join("");
+		const queue = [element];
+		while (queue.length > 0) {
+			const currNodes = queue.shift();
+			if (currNodes.nodeName === "#text") {
+				return (currNodes.value as string) ?? "";
+			}
+			if (!Array.isArray(currNodes.childNodes)) {
+				continue;
+			}
+			for (let child of currNodes.childNodes) {
+				queue.push(child);
+			}
+		}
+		return "";
 	}
 
 	private geolocator(address: string): Promise<GeoResponse> {
