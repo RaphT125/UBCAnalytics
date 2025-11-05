@@ -11,19 +11,21 @@ import fsPromises from "fs-extra";
 import { Parsers } from "./Parsers";
 import { SectionParser } from "./SectionParser";
 import { RoomParser } from "./RoomParser";
+import type { Room } from "./RoomParser";
+import type { Section } from "./SectionParser";
 
-interface Section {
-	id: string;
-	Course: string;
-	Title: string;
-	Professor: string;
-	Subject: string;
-	Year: number;
-	Avg: number;
-	Pass: number;
-	Fail: number;
-	Audit: number;
-}
+// interface Section {
+// 	id: string;
+// 	Course: string;
+// 	Title: string;
+// 	Professor: string;
+// 	Subject: string;
+// 	Year: number;
+// 	Avg: number;
+// 	Pass: number;
+// 	Fail: number;
+// 	Audit: number;
+// }
 
 interface Query {
 	WHERE: any;
@@ -433,18 +435,47 @@ export default class InsightFacade implements IInsightFacade {
 	}
 
 	public async listDatasets(): Promise<InsightDataset[]> {
-		const fileDirect = directory + "/" + "sections";
+		const fileDirectSection = directory + "/" + "sections";
+		const fileDirectRooms = directory + "/" + "rooms";
 		const list: InsightDataset[] = [];
+		let sectionFiles: string[] = [];
+		let roomFiles: string[] = [];
 		try {
-			const files = await fsPromises.readdir(fileDirect);
-			for (const id of files) {
-				//const path = fileDirect + "/" + id;
+			sectionFiles = await fsPromises.readdir(fileDirectSection);
+			for (const id of sectionFiles) {
 				const file = await this.loadDataset(id);
-				list.push({ id, kind: InsightDatasetKind.Sections, numRows: file.length });
+				list.push({ id: id, kind: InsightDatasetKind.Sections, numRows: file.length });
 			}
-			return list;
-		} catch (e) {
-			return [];
+		} catch (e) {}
+		try {
+			roomFiles = await fsPromises.readdir(fileDirectRooms);
+			for (const id of roomFiles) {
+				const file = await this.loadRoom(id);
+				list.push({ id: id, kind: InsightDatasetKind.Rooms, numRows: file.length });
+			}
+		} catch (e) {}
+		return list;
+	}
+
+	private async loadRoom(datasetId: string): Promise<Room[]> {
+		const filePath = directory + "/rooms/" + datasetId;
+
+		try {
+			const data = await fsPromises.readFile(filePath, "utf8");
+			let parsed = JSON.parse(data);
+
+			while (Array.isArray(parsed) && parsed.length > 0 && Array.isArray(parsed[0])) {
+				parsed = parsed[0];
+			}
+
+			if (Array.isArray(parsed) && parsed.length > 0) {
+				if (Array.isArray(parsed[0])) {
+					parsed = parsed.flat();
+				}
+			}
+			return parsed as Room[];
+		} catch (error) {
+			throw new InsightError(`Dataset ${datasetId} not found`);
 		}
 	}
 }

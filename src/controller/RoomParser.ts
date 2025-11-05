@@ -118,11 +118,12 @@ export class RoomParser extends Parsers<Room> {
 							b.href = this.getAttr(a, "href").trim();
 						}
 						break;
-
 					case classAttributes.has("views-field-field-building-address"):
 						b.address = this.getContent(element).trim();
 						const geo = await this.geolocator(b.address);
-						if (geo.error) throw new InsightError("geolocation error for: " + b.address);
+						if (geo.error) {
+							break;
+						}
 						b.lat = geo.lat;
 						b.lon = geo.lon;
 						break;
@@ -162,7 +163,6 @@ export class RoomParser extends Parsers<Room> {
 			let rowsChild = this.findNodes(row, "td");
 			for (const element of rowsChild) {
 				const classAttributes = new Set((this.getAttr(element, "class") ?? "").split(/\s+/).filter(Boolean));
-
 				switch (true) {
 					case classAttributes.has("views-field-field-room-number"):
 						const a = (element.childNodes ?? []).find((c: any) => c.tagName === "a");

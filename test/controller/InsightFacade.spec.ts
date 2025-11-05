@@ -3,8 +3,8 @@ import {
 	InsightDatasetKind,
 	InsightError,
 	InsightResult,
-	ResultTooLargeError,
 	NotFoundError,
+	ResultTooLargeError,
 } from "../../src/controller/IInsightFacade";
 import InsightFacade from "../../src/controller/InsightFacade";
 import { clearDisk, getContentFromArchives, loadTestQuery } from "../TestUtil";
@@ -446,6 +446,16 @@ describe("InsightFacade", function () {
 			expect(result.length).to.deep.equal(2);
 			expect(result[0].id).to.deep.equal("ubc");
 			expect(result[1].id).to.deep.equal("ubc2");
+		});
+		it("should have 3", async function () {
+			await facade.addDataset("ubc", sections, InsightDatasetKind.Sections);
+			await facade.addDataset("ubc2", valid, InsightDatasetKind.Sections);
+			await facade.addDataset("ubc3", campus, InsightDatasetKind.Rooms);
+			const result = await facade.listDatasets();
+			expect(result.length).to.deep.equal(3);
+			expect(result[0].id).to.deep.equal("ubc");
+			expect(result[1].id).to.deep.equal("ubc2");
+			expect(result[2].id).to.deep.equal("ubc3");
 		});
 		it("should have 1 after removal", async function () {
 			const test = await getContentFromArchives("valid.zip");
