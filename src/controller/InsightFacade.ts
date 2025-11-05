@@ -633,28 +633,29 @@ export default class InsightFacade implements IInsightFacade {
     }
 
 	public async listDatasets(): Promise<InsightDataset[]> {
-		const fileDirectSection = directory + "/" + "sections";
-		const fileDirectRooms = directory + "/" + "rooms";
-		const list: InsightDataset[] = [];
-		let sectionFiles: string[] = [];
-		let roomFiles: string[] = [];
-		try {
-			sectionFiles = await fsPromises.readdir(fileDirectSection);
-			for (const id of sectionFiles) {
-				const file = await this.loadDataset(id);
-				list.push({ id: id, kind: InsightDatasetKind.Sections, numRows: file.length });
-			}
-		} catch (e) {}
-		try {
-			roomFiles = await fsPromises.readdir(fileDirectRooms);
-			for (const id of roomFiles) {
-				const file = await this.loadRoom(id);
-				list.push({ id: id, kind: InsightDatasetKind.Rooms, numRows: file.length });
-			}
-		} catch (e) {}
-		return list;
-	}
-
+        const fileDirectSection = directory + "/" + "sections";
+        const fileDirectRooms = directory + "/" + "rooms";
+        const list: InsightDataset[] = [];
+        
+        try {
+            const sectionFiles = await fsPromises.readdir(fileDirectSection);
+            for (const id of sectionFiles) {
+                const file = await this.loadDataset(id);
+                list.push({ id: id, kind: InsightDatasetKind.Sections, numRows: file.length });
+            }
+        } catch (e) {}
+        
+        try {
+            const roomFiles = await fsPromises.readdir(fileDirectRooms);
+            for (const id of roomFiles) {
+                const file = await this.loadRoom(id);
+                list.push({ id: id, kind: InsightDatasetKind.Rooms, numRows: file.length });
+            }
+        } catch (e) {}
+        
+        return list;
+    }
+    
 	private async loadRoom(datasetId: string): Promise<Room[]> {
 		const filePath = directory + "/rooms/" + datasetId;
 
@@ -755,12 +756,16 @@ export default class InsightFacade implements IInsightFacade {
                 return Math.min(...values);
     
             case "AVG":
+                if (values.length === 0) {
+                    return 0;
+                }
+                
                 let total = new Decimal(0);
-    
+                
                 for (const val of values) {
                     total = total.add(new Decimal(val));
                 }
-    
+                
                 const avg = total.toNumber() / values.length;
                 return Number(avg.toFixed(2));
     
