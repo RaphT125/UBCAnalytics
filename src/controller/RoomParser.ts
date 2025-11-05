@@ -183,7 +183,7 @@ export class RoomParser extends Parsers<Room> {
 						break;
 					}
 					case classAttributes.has("views-field-field-room-capacity"):
-						room.seats = parseInt(this.getContent(element).trim(), 10);
+						room.seats = parseInt(this.getContent(element).trim());
 						break;
 
 					case classAttributes.has("views-field-field-room-furniture"):
@@ -198,18 +198,7 @@ export class RoomParser extends Parsers<Room> {
 						break;
 				}
 			}
-			if (
-				room.fullname.length > 0 &&
-				room.shortname.length > 0 &&
-				room.furniture.length > 0 &&
-				room.type.length > 0 &&
-				room.number.length > 0 &&
-				room.address.length > 0 &&
-				room.lat != undefined &&
-				room.lon != undefined &&
-				room.seats != undefined &&
-				room.href.length > 0
-			) {
+			if (room.number.length > 0 && room.href.length > 0) {
 				room.name = `${room.shortname}_${room.number}`;
 				rooms.push(room);
 			}

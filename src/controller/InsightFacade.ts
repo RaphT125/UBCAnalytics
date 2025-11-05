@@ -652,7 +652,7 @@ export default class InsightFacade implements IInsightFacade {
 				list.push({ id: id, kind: InsightDatasetKind.Rooms, numRows: file.length });
 			}
 		} catch (e) {}
-
+		console.log(list);
 		return list;
 	}
 
