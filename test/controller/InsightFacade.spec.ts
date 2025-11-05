@@ -960,4 +960,5 @@ describe("InsightFacade", function () {
 			});
 		});
 	});
+
 });
