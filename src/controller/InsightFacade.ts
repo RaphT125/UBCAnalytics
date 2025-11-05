@@ -10,7 +10,7 @@ import {
 import fsPromises from "fs-extra";
 import { Parsers } from "./Parsers";
 import { SectionParser } from "./SectionParser";
-import RoomParser from "./RoomParser";
+import { RoomParser } from "./RoomParser";
 import type { Room } from "./RoomParser";
 import type { Section } from "./SectionParser";
 import Decimal from "decimal.js";
@@ -142,29 +142,29 @@ export default class InsightFacade implements IInsightFacade {
         const datasetId = this.extractDatasetId(validQuery);
         const kind = await this.getDatasetKind(datasetId);
         let data: any[];
-    
+
         if (kind === InsightDatasetKind.Sections) {
             data = await this.loadDataset(datasetId);
         } else {
             data = await this.loadRoom(datasetId);
         }
-    
+
         let filtered = this.applyFilters(data, validQuery.WHERE, kind);
-    
+
         if (validQuery.TRANSFORMATIONS) {
             filtered = this.applyTransformations(filtered, validQuery.TRANSFORMATIONS, datasetId);
         } else {
             filtered = this.selectColumns(filtered, validQuery.OPTIONS.COLUMNS, datasetId);
         }
-    
+
         if (filtered.length > 5000) {
             throw new ResultTooLargeError("Query result exceeds 5000 rows");
         }
-    
+
         if (validQuery.OPTIONS.ORDER) {
             filtered = this.sortResults(filtered, validQuery.OPTIONS.ORDER);
         }
-    
+
         return filtered;
     }
 
@@ -172,34 +172,34 @@ export default class InsightFacade implements IInsightFacade {
         if (!query || typeof query !== "object") {
             throw new InsightError("Query must be an object");
         }
-    
+
         const q = query as any;
-    
+
         if (!q.hasOwnProperty("WHERE")) {
             throw new InsightError("Query missing WHERE clause");
         }
-    
+
         if (!q.hasOwnProperty("OPTIONS")) {
             throw new InsightError("Query missing OPTIONS clause");
         }
-    
+
         const options = q.OPTIONS;
         if (!options || typeof options !== "object") {
             throw new InsightError("OPTIONS must be an object");
         }
-    
+
         if (!options.hasOwnProperty("COLUMNS")) {
             throw new InsightError("OPTIONS missing COLUMNS");
         }
-    
+
         if (!Array.isArray(options.COLUMNS)) {
             throw new InsightError("COLUMNS must be an array");
         }
-    
+
         if (options.COLUMNS.length === 0) {
             throw new InsightError("COLUMNS cannot be empty");
         }
-    
+
         for (const column of options.COLUMNS) {
             if (typeof column !== "string") {
                 throw new InsightError("Column names must be strings");
@@ -208,58 +208,58 @@ export default class InsightFacade implements IInsightFacade {
                 this.validateColumnName(column);
             }
         }
-    
+
         if (q.hasOwnProperty("TRANSFORMATIONS")) {
             const trans = q.TRANSFORMATIONS;
-    
+
             if (!trans || typeof trans !== "object") {
                 throw new InsightError("TRANSFORMATIONS must be an object");
             }
-    
+
             if (!trans.hasOwnProperty("GROUP") || !trans.hasOwnProperty("APPLY")) {
                 throw new InsightError("TRANSFORMATIONS must have GROUP and APPLY");
             }
-    
+
             if (!Array.isArray(trans.GROUP)) {
                 throw new InsightError("GROUP must be an array");
             }
-    
+
             if (!Array.isArray(trans.APPLY)) {
                 throw new InsightError("APPLY must be an array");
             }
-    
+
             for (const key of trans.GROUP) {
                 if (typeof key !== "string") {
                     throw new InsightError("GROUP keys must be strings");
                 }
                 this.validateColumnName(key);
             }
-    
+
             const applyKeys = new Set<string>();
             for (const rule of trans.APPLY) {
                 const applyKey = Object.keys(rule)[0];
-    
+
                 if (applyKeys.has(applyKey)) {
                     throw new InsightError("Duplicate applykey: " + applyKey);
                 }
-    
+
                 if (applyKey.includes("_")) {
                     throw new InsightError("applykey cannot contain underscore");
                 }
-    
+
                 applyKeys.add(applyKey);
-    
+
                 const applyBody = rule[applyKey];
                 const token = Object.keys(applyBody)[0];
                 const key = applyBody[token];
-    
+
                 const validTokens = ["MAX", "MIN", "AVG", "SUM", "COUNT"];
                 if (!validTokens.includes(token)) {
                     throw new InsightError("Invalid APPLYTOKEN: " + token);
                 }
-    
+
                 this.validateColumnName(key);
-    
+
                 if (["MAX", "MIN", "AVG", "SUM"].includes(token)) {
                     const fieldName = key.split("_")[1];
                     const numericFields = ["avg", "pass", "fail", "audit", "year", "lat", "lon", "seats"];
@@ -268,17 +268,17 @@ export default class InsightFacade implements IInsightFacade {
                     }
                 }
             }
-    
+
             for (const column of options.COLUMNS) {
                 const isInGroup = trans.GROUP.includes(column);
                 const isInApply = applyKeys.has(column);
-    
+
                 if (!isInGroup && !isInApply) {
                     throw new InsightError("COLUMNS key must be in GROUP or APPLY: " + column);
                 }
             }
         }
-    
+
         if (options.hasOwnProperty("ORDER")) {
             if (typeof options.ORDER === "string") {
                 this.validateColumnName(options.ORDER);
@@ -287,19 +287,19 @@ export default class InsightFacade implements IInsightFacade {
                 }
             } else if (typeof options.ORDER === "object") {
                 const order = options.ORDER;
-    
+
                 if (!order.hasOwnProperty("dir") || !order.hasOwnProperty("keys")) {
                     throw new InsightError("ORDER object must have 'dir' and 'keys'");
                 }
-    
+
                 if (order.dir !== "UP" && order.dir !== "DOWN") {
                     throw new InsightError("ORDER dir must be 'UP' or 'DOWN'");
                 }
-    
+
                 if (!Array.isArray(order.keys) || order.keys.length === 0) {
                     throw new InsightError("ORDER keys must be a non-empty array");
                 }
-    
+
                 for (const key of order.keys) {
                     if (!options.COLUMNS.includes(key)) {
                         throw new InsightError("ORDER key must be in COLUMNS: " + key);
@@ -309,7 +309,7 @@ export default class InsightFacade implements IInsightFacade {
                 throw new InsightError("ORDER must be a string or object");
             }
         }
-    
+
         return q as Query;
     }
 
@@ -318,7 +318,7 @@ export default class InsightFacade implements IInsightFacade {
         if (parts.length !== 2 || parts[0] === "" || parts[1] === "") {
             throw new InsightError(`Invalid column name: ${column}`);
         }
-    
+
         const validFields = [
             "id",
             "course",
@@ -343,7 +343,7 @@ export default class InsightFacade implements IInsightFacade {
             "href",
         ];
         const fieldName = parts[1];
-    
+
         if (!validFields.includes(fieldName)) {
             throw new InsightError(`Invalid column name: ${column}`);
         }
@@ -352,7 +352,7 @@ export default class InsightFacade implements IInsightFacade {
 	private extractDatasetId(query: Query): string {
         const firstColumn = query.OPTIONS.COLUMNS[0];
         let datasetId = "";
-    
+
         if (firstColumn.includes("_")) {
             datasetId = firstColumn.split("_")[0];
         } else if (query.TRANSFORMATIONS) {
@@ -367,34 +367,34 @@ export default class InsightFacade implements IInsightFacade {
                 datasetId = key.split("_")[0];
             }
         }
-    
+
         for (const column of query.OPTIONS.COLUMNS) {
             if (column.includes("_") && !column.startsWith(datasetId + "_")) {
                 throw new InsightError("Query references multiple datasets");
             }
         }
-    
+
         this.checkDatasetConsistency(query.WHERE, datasetId);
-    
+
         if (query.TRANSFORMATIONS) {
             for (const groupKey of query.TRANSFORMATIONS.GROUP) {
                 if (!groupKey.startsWith(datasetId + "_")) {
                     throw new InsightError("Query references multiple datasets");
                 }
             }
-    
+
             for (const applyRule of query.TRANSFORMATIONS.APPLY) {
                 const applyKey = Object.keys(applyRule)[0];
                 const applyBody = applyRule[applyKey];
                 const token = Object.keys(applyBody)[0];
                 const key = applyBody[token];
-    
+
                 if (!key.startsWith(datasetId + "_")) {
                     throw new InsightError("Query references multiple datasets");
                 }
             }
         }
-    
+
         return datasetId;
     }
 
@@ -450,7 +450,7 @@ export default class InsightFacade implements IInsightFacade {
         if (!where || Object.keys(where).length === 0) {
             return data;
         }
-    
+
         return data.filter((item) => this.checkCondition(item, where));
     }
 
@@ -547,19 +547,19 @@ export default class InsightFacade implements IInsightFacade {
 	private selectColumns(data: any[], columns: string[], datasetId: string): InsightResult[] {
         return data.map((item) => {
             const result: InsightResult = {};
-    
+
             for (const column of columns) {
                 const fieldName = column.split("_")[1];
                 const mappedField = this.getFieldName(fieldName);
                 let value = (item as any)[mappedField];
-    
+
                 if (column.endsWith("_id")) {
                     value = String(value);
                 }
-    
+
                 result[column] = value;
             }
-    
+
             return result;
         });
     }
@@ -569,7 +569,7 @@ export default class InsightFacade implements IInsightFacade {
             return results.sort((a, b) => {
                 const aVal = a[order];
                 const bVal = b[order];
-    
+
                 if (typeof aVal === "number" && typeof bVal === "number") {
                     return aVal - bVal;
                 }
@@ -579,23 +579,23 @@ export default class InsightFacade implements IInsightFacade {
                 return 0;
             });
         }
-    
+
         const { dir, keys } = order;
         const direction = dir === "UP" ? 1 : -1;
-    
+
         return results.sort((a, b) => {
             for (const key of keys) {
                 const aVal = a[key];
                 const bVal = b[key];
-    
+
                 let comparison = 0;
-    
+
                 if (typeof aVal === "number" && typeof bVal === "number") {
                     comparison = aVal - bVal;
                 } else if (typeof aVal === "string" && typeof bVal === "string") {
                     comparison = aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
                 }
-    
+
                 if (comparison !== 0) {
                     return comparison * direction;
                 }
@@ -628,7 +628,7 @@ export default class InsightFacade implements IInsightFacade {
             furniture: "furniture",
             href: "href",
         };
-    
+
         return fieldMap[fieldName] || fieldName;
     }
 
@@ -656,6 +656,29 @@ export default class InsightFacade implements IInsightFacade {
 		return list;
 	}
 
+        const fileDirectSection = directory + "/" + "sections";
+        const fileDirectRooms = directory + "/" + "rooms";
+        const list: InsightDataset[] = [];
+
+        try {
+            const sectionFiles = await fsPromises.readdir(fileDirectSection);
+            for (const id of sectionFiles) {
+                const file = await this.loadDataset(id);
+                list.push({ id: id, kind: InsightDatasetKind.Sections, numRows: file.length });
+            }
+        } catch (e) {}
+
+        try {
+            const roomFiles = await fsPromises.readdir(fileDirectRooms);
+            for (const id of roomFiles) {
+                const file = await this.loadRoom(id);
+                list.push({ id: id, kind: InsightDatasetKind.Rooms, numRows: file.length });
+            }
+        } catch (e) {}
+
+        return list;
+    }
+
 	private async loadRoom(datasetId: string): Promise<Room[]> {
 		const filePath = directory + "/rooms/" + datasetId;
 
@@ -681,7 +704,7 @@ export default class InsightFacade implements IInsightFacade {
     private async getDatasetKind(id: string): Promise<InsightDatasetKind> {
         const sectionPath = `${directory}/sections/${id}`;
         const roomPath = `${directory}/rooms/${id}`;
-    
+
         try {
             await fsPromises.access(sectionPath);
             return InsightDatasetKind.Sections;
@@ -702,77 +725,77 @@ export default class InsightFacade implements IInsightFacade {
     ): InsightResult[] {
         const { GROUP, APPLY } = transformations;
         const groups = new Map<string, any[]>();
-    
+
         for (const item of data) {
             const groupKey = GROUP.map((key) => {
                 const fieldName = key.split("_")[1];
                 const mappedField = this.getFieldName(fieldName);
                 return item[mappedField];
             }).join("|");
-    
+
             if (!groups.has(groupKey)) {
                 groups.set(groupKey, []);
             }
             groups.get(groupKey)!.push(item);
         }
-    
+
         const results: InsightResult[] = [];
-    
+
         for (const [groupKey, groupItems] of groups) {
             const result: InsightResult = {};
-    
+
             GROUP.forEach((key, index) => {
                 const fieldName = key.split("_")[1];
                 const mappedField = this.getFieldName(fieldName);
                 result[key] = groupItems[0][mappedField];
             });
-    
+
             for (const applyRule of APPLY) {
                 const applyKey = Object.keys(applyRule)[0];
                 const applyBody = applyRule[applyKey];
                 const token = Object.keys(applyBody)[0];
                 const key = applyBody[token];
-    
+
                 const fieldName = key.split("_")[1];
                 const mappedField = this.getFieldName(fieldName);
-    
+
                 result[applyKey] = this.applyOperation(token, groupItems, mappedField);
             }
-    
+
             results.push(result);
         }
-    
+
         return results;
     }
 
     private applyOperation(token: string, items: any[], field: string): number {
         const values = items.map((item) => item[field]);
-    
+
         switch (token) {
             case "MAX":
                 return Math.max(...values);
-    
+
             case "MIN":
                 return Math.min(...values);
-    
+
             case "AVG":
                 let total = new Decimal(0);
-    
+
                 for (const val of values) {
                     total = total.add(new Decimal(val));
                 }
-    
+
                 const avg = total.toNumber() / values.length;
                 return Number(avg.toFixed(2));
-    
+
             case "SUM":
                 const sum = values.reduce((acc, val) => acc + val, 0);
                 return Number(sum.toFixed(2));
-    
+
             case "COUNT":
                 const unique = new Set(values);
                 return unique.size;
-    
+
             default:
                 throw new InsightError("Invalid APPLYTOKEN");
         }
