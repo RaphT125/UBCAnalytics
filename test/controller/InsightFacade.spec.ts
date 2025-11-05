@@ -50,7 +50,7 @@ describe("InsightFacade", function () {
 			await clearDisk();
 			facade = new InsightFacade();
 		});
-		//good  inputs adding dataset
+		//good  inputs adding datasets
 		it("Should reject buidling contains no rooms", async function () {
 			try {
 				await facade.addDataset("ubc", invalidRoomies, InsightDatasetKind.Rooms);
