@@ -10,7 +10,7 @@ import {
 import fsPromises from "fs-extra";
 import { Parsers } from "./Parsers";
 import { SectionParser } from "./SectionParser";
-import { RoomParser } from "./RoomParser";
+import RoomParser from "./RoomParser";
 import type { Room } from "./RoomParser";
 import type { Section } from "./SectionParser";
 
@@ -452,6 +452,7 @@ export default class InsightFacade implements IInsightFacade {
 			for (const id of roomFiles) {
 				const file = await this.loadRoom(id);
 				list.push({ id: id, kind: InsightDatasetKind.Rooms, numRows: file.length });
+				console.log(list);
 			}
 		} catch (e) {}
 		return list;

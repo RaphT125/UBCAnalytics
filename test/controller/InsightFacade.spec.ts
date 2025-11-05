@@ -28,6 +28,7 @@ describe("InsightFacade", function () {
 	let valid: string;
 	let campus: string;
 	//let invalidRoom: string;
+	let invalidRoomies: string;
 	let invalidIndex: string;
 	let invalidBuildings: string;
 	before(async function () {
@@ -37,6 +38,7 @@ describe("InsightFacade", function () {
 		campus = await getContentFromArchives("campus.zip");
 		//invalidRoom = await getContentFromArchives("invalidRoom.zip");
 		invalidIndex = await getContentFromArchives("noIndex.zip");
+		invalidRoomies = await getContentFromArchives("noRoom2.zip");
 		invalidBuildings = await getContentFromArchives("noBuildings.zip");
 
 		// Just in case there is anything hanging around from a previous run of the test suite
@@ -49,6 +51,14 @@ describe("InsightFacade", function () {
 			facade = new InsightFacade();
 		});
 		//good  inputs adding dataset
+		it("Should reject buidling contains no rooms", async function () {
+			try {
+				await facade.addDataset("ubc", invalidRoomies, InsightDatasetKind.Rooms);
+				expect.fail("An Error Should have been thrown");
+			} catch (error) {
+				expect(error).to.be.instanceof(InsightError);
+			}
+		});
 		it("should successfully add a dataset (first)", async function () {
 			try {
 				const result = await facade.addDataset("ubc", sections, InsightDatasetKind.Sections);
@@ -167,6 +177,7 @@ describe("InsightFacade", function () {
 				expect(error).to.be.instanceof(InsightError);
 			}
 		});
+
 		it("Should reject Id that contains underscore in left", async function () {
 			try {
 				await facade.addDataset("_ubc", sections, InsightDatasetKind.Sections);
