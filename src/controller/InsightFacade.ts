@@ -137,7 +137,6 @@ export default class InsightFacade implements IInsightFacade {
 		}
 	}
 
-
 	public async performQuery(query: unknown): Promise<InsightResult[]> {
 		const validQuery = this.validateQuery(query);
 		const datasetId = this.extractDatasetId(validQuery);
@@ -399,7 +398,6 @@ export default class InsightFacade implements IInsightFacade {
 		return datasetId;
 	}
 
-
 	private checkDatasetConsistency(where: any, datasetId: string): void {
 		if (!where || typeof where !== "object") {
 			return;
@@ -449,14 +447,12 @@ export default class InsightFacade implements IInsightFacade {
 	}
 
 	private applyFilters(data: any[], where: any, kind: InsightDatasetKind): any[] {
-
 		if (!where || Object.keys(where).length === 0) {
 			return data;
 		}
 
 		return data.filter((item) => this.checkCondition(item, where));
 	}
-
 
 	private checkCondition(section: Section, condition: any): boolean {
 		if (!condition || typeof condition !== "object") {
@@ -549,7 +545,6 @@ export default class InsightFacade implements IInsightFacade {
 	}
 
 	private selectColumns(data: any[], columns: string[], datasetId: string): InsightResult[] {
-
 		return data.map((item) => {
 			const result: InsightResult = {};
 
@@ -661,7 +656,6 @@ export default class InsightFacade implements IInsightFacade {
 		return list;
 	}
 
-
 	private async loadRoom(datasetId: string): Promise<Room[]> {
 		const filePath = directory + "/rooms/" + datasetId;
 
@@ -683,7 +677,6 @@ export default class InsightFacade implements IInsightFacade {
 			throw new InsightError(`Dataset ${datasetId} not found`);
 		}
 	}
-
 
 	private async getDatasetKind(id: string): Promise<InsightDatasetKind> {
 		const sectionPath = `${directory}/sections/${id}`;
