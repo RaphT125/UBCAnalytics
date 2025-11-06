@@ -42,6 +42,7 @@ const roomFields = [
 	"views-field-field-room-capacity",
 	"views-field-field-room-furniture",
 	"views-field-field-room-type",
+	"views-field-nothing",
 ];
 
 export class RoomParser extends Parsers<Room> {
@@ -90,7 +91,11 @@ export class RoomParser extends Parsers<Room> {
 			const seen = new Set<string>();
 			for (const heading of headings) {
 				const cell = this.getAttr(heading, "class");
-				for (const req of type) if (cell.includes(req)) seen.add(req);
+				for (const req of type) {
+					if (cell.includes(req)) {
+						seen.add(req);
+					}
+				}
 			}
 			return seen.size === type.length;
 		});
@@ -151,29 +156,34 @@ export class RoomParser extends Parsers<Room> {
 	}
 
 	private async roomBuilder(b: building, parsedHTM: any): Promise<Room[]> {
-		if (this.findTable(parsedHTM, roomFields).length > 1) {
+		//debugged using ai start
+		const roomTables = this.findTable(parsedHTM, roomFields);
+		if (roomTables.length > 1) {
 			throw new InsightError("rooms is invalid");
 		}
+		const roomTable = roomTables[0];
 		const rooms: Room[] = [];
-		let rows = this.findNodes(parsedHTM, "tr");
+		const rows = this.findNodes(roomTable, "tr");
 		if (rows.length === 0) return rooms;
+		//debugged using ai end
 		for (const row of rows) {
 			let room: Room = { ...b, number: "", name: "", seats: undefined, type: "", furniture: "" };
-			if (!row.childNodes.length) continue;
-			let rowsChild = this.findNodes(row, "td");
-			for (const element of rowsChild) {
+			if (!row.childNodes?.length) continue;
+			const cells = this.findNodes(row, "td");
+			for (const element of cells) {
 				const classAttributes = new Set((this.getAttr(element, "class") ?? "").split(/\s+/).filter(Boolean));
+
 				switch (true) {
-					case classAttributes.has("views-field-field-room-number"):
+					case classAttributes.has("views-field-field-room-number"): {
 						const a = (element.childNodes ?? []).find((c: any) => c.tagName === "a");
 						if (a) {
 							room.number = this.getContent(a).trim();
-							room.href = this.getAttr(a, "href").trim();
+							room.href = (this.getAttr(a, "href") ?? "").trim();
 						}
 						break;
-
+					}
 					case classAttributes.has("views-field-field-room-capacity"):
-						room.seats = parseInt(this.getContent(element).trim(), 10);
+						room.seats = parseInt(this.getContent(element).trim());
 						break;
 
 					case classAttributes.has("views-field-field-room-furniture"):
@@ -188,19 +198,8 @@ export class RoomParser extends Parsers<Room> {
 						break;
 				}
 			}
-			if (
-				room.fullname.length > 0 &&
-				room.shortname.length > 0 &&
-				room.furniture.length > 0 &&
-				room.type.length > 0 &&
-				room.number.length > 0 &&
-				room.address.length > 0 &&
-				room.lat != undefined &&
-				room.lon != undefined &&
-				room.seats != undefined &&
-				room.href.length > 0
-			) {
-				room.name = room.shortname + "_" + room.number;
+			if (room.number.length > 0 && room.href.length > 0) {
+				room.name = `${room.shortname}_${room.number}`;
 				rooms.push(room);
 			}
 		}

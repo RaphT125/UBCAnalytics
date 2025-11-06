@@ -28,6 +28,7 @@ describe("InsightFacade", function () {
 	let valid: string;
 	let campus: string;
 	//let invalidRoom: string;
+	let invalidRoomies: string;
 	let invalidIndex: string;
 	let invalidBuildings: string;
 	before(async function () {
@@ -37,6 +38,7 @@ describe("InsightFacade", function () {
 		campus = await getContentFromArchives("campus.zip");
 		//invalidRoom = await getContentFromArchives("invalidRoom.zip");
 		invalidIndex = await getContentFromArchives("noIndex.zip");
+		invalidRoomies = await getContentFromArchives("noRoom2.zip");
 		invalidBuildings = await getContentFromArchives("noBuildings.zip");
 
 		// Just in case there is anything hanging around from a previous run of the test suite
@@ -48,7 +50,15 @@ describe("InsightFacade", function () {
 			await clearDisk();
 			facade = new InsightFacade();
 		});
-		//good  inputs adding dataset
+		//good  inputs adding datasets
+		it("Should reject buidling contains no rooms", async function () {
+			try {
+				await facade.addDataset("ubc", invalidRoomies, InsightDatasetKind.Rooms);
+				expect.fail("An Error Should have been thrown");
+			} catch (error) {
+				expect(error).to.be.instanceof(InsightError);
+			}
+		});
 		it("should successfully add a dataset (first)", async function () {
 			try {
 				const result = await facade.addDataset("ubc", sections, InsightDatasetKind.Sections);
@@ -167,6 +177,7 @@ describe("InsightFacade", function () {
 				expect(error).to.be.instanceof(InsightError);
 			}
 		});
+
 		it("Should reject Id that contains underscore in left", async function () {
 			try {
 				await facade.addDataset("_ubc", sections, InsightDatasetKind.Sections);
@@ -474,466 +485,479 @@ describe("InsightFacade", function () {
 		});
 	});
 
-    describe("PerformQuery - Checkpoint 2", function () {
-        before(async function () {
-            await clearDisk();
-            facade = new InsightFacade();
-            await facade.addDataset("sections", sections, InsightDatasetKind.Sections);
-            await facade.addDataset("rooms", campus, InsightDatasetKind.Rooms);
-        });
-    
-        after(async function () {
-            await clearDisk();
-        });
-    
-        describe("TRANSFORMATIONS - GROUP", function () {
-            it("should group by single key", async function () {
-                const query = {
-                    WHERE: {},
-                    OPTIONS: {
-                        COLUMNS: ["sections_dept"]
-                    },
-                    TRANSFORMATIONS: {
-                        GROUP: ["sections_dept"],
-                        APPLY: []
-                    }
-                };
-                const result = await facade.performQuery(query);
-                expect(result).to.be.an("array");
-                expect(result.length).to.be.greaterThan(0);
-            });
-    
-            it("should group by multiple keys", async function () {
-                const query = {
-                    WHERE: {
-                        GT: { sections_avg: 90 }
-                    },
-                    OPTIONS: {
-                        COLUMNS: ["sections_dept", "sections_instructor"]
-                    },
-                    TRANSFORMATIONS: {
-                        GROUP: ["sections_dept", "sections_instructor"],
-                        APPLY: []
-                    }
-                };
-                const result = await facade.performQuery(query);
-                expect(result).to.be.an("array");
-                expect(result.length).to.be.greaterThan(0);
-            });
-    
-            it("should reject if COLUMNS not in GROUP or APPLY", async function () {
-                const query = {
-                    WHERE: {},
-                    OPTIONS: {
-                        COLUMNS: ["sections_dept", "sections_avg"]
-                    },
-                    TRANSFORMATIONS: {
-                        GROUP: ["sections_dept"],
-                        APPLY: []
-                    }
-                };
-                try {
-                    await facade.performQuery(query);
-                    expect.fail("should have thrown error");
-                } catch (err) {
-                    expect(err).to.be.instanceof(InsightError);
-                }
-            });
-        });
-    
-        describe("TRANSFORMATIONS - APPLY", function () {
-            it("should apply MAX", async function () {
-                const query = {
-                    WHERE: {},
-                    OPTIONS: {
-                        COLUMNS: ["sections_dept", "maxAvg"]
-                    },
-                    TRANSFORMATIONS: {
-                        GROUP: ["sections_dept"],
-                        APPLY: [{
-                            maxAvg: {
-                                MAX: "sections_avg"
-                            }
-                        }]
-                    }
-                };
-                const result = await facade.performQuery(query);
-                expect(result).to.be.an("array");
-                expect(result[0]).to.have.property("maxAvg");
-                expect(result[0].maxAvg).to.be.a("number");
-            });
-    
-            it("should apply MIN", async function () {
-                const query = {
-                    WHERE: {},
-                    OPTIONS: {
-                        COLUMNS: ["sections_dept", "minAvg"]
-                    },
-                    TRANSFORMATIONS: {
-                        GROUP: ["sections_dept"],
-                        APPLY: [{
-                            minAvg: {
-                                MIN: "sections_avg"
-                            }
-                        }]
-                    }
-                };
-                const result = await facade.performQuery(query);
-                expect(result).to.be.an("array");
-                expect(result[0]).to.have.property("minAvg");
-                expect(result[0].minAvg).to.be.a("number");
-            });
-    
-            it("should apply AVG with decimal precision", async function () {
-                const query = {
-                    WHERE: {},
-                    OPTIONS: {
-                        COLUMNS: ["sections_dept", "avgGrade"]
-                    },
-                    TRANSFORMATIONS: {
-                        GROUP: ["sections_dept"],
-                        APPLY: [{
-                            avgGrade: {
-                                AVG: "sections_avg"
-                            }
-                        }]
-                    }
-                };
-                const result = await facade.performQuery(query);
-                expect(result).to.be.an("array");
-                expect(result[0]).to.have.property("avgGrade");
-                const avgValue = result[0].avgGrade as number;
-                const decimalPlaces = (avgValue.toString().split(".")[1] || "").length;
-                expect(decimalPlaces).to.be.at.most(2);
-            });
-    
-            it("should apply SUM", async function () {
-                const query = {
-                    WHERE: {},
-                    OPTIONS: {
-                        COLUMNS: ["sections_dept", "totalPass"]
-                    },
-                    TRANSFORMATIONS: {
-                        GROUP: ["sections_dept"],
-                        APPLY: [{
-                            totalPass: {
-                                SUM: "sections_pass"
-                            }
-                        }]
-                    }
-                };
-                const result = await facade.performQuery(query);
-                expect(result).to.be.an("array");
-                expect(result[0]).to.have.property("totalPass");
-                expect(result[0].totalPass).to.be.a("number");
-            });
-    
-            it("should apply COUNT", async function () {
-                const query = {
-                    WHERE: {},
-                    OPTIONS: {
-                        COLUMNS: ["sections_dept", "numInstructors"]
-                    },
-                    TRANSFORMATIONS: {
-                        GROUP: ["sections_dept"],
-                        APPLY: [{
-                            numInstructors: {
-                                COUNT: "sections_instructor"
-                            }
-                        }]
-                    }
-                };
-                const result = await facade.performQuery(query);
-                expect(result).to.be.an("array");
-                expect(result[0]).to.have.property("numInstructors");
-                expect(result[0].numInstructors).to.be.a("number");
-            });
-    
-            it("should handle multiple APPLY rules", async function () {
-                const query = {
-                    WHERE: {},
-                    OPTIONS: {
-                        COLUMNS: ["sections_dept", "avgGrade", "maxGrade", "totalStudents"]
-                    },
-                    TRANSFORMATIONS: {
-                        GROUP: ["sections_dept"],
-                        APPLY: [
-                            { avgGrade: { AVG: "sections_avg" } },
-                            { maxGrade: { MAX: "sections_avg" } },
-                            { totalStudents: { SUM: "sections_pass" } }
-                        ]
-                    }
-                };
-                const result = await facade.performQuery(query);
-                expect(result).to.be.an("array");
-                expect(result[0]).to.have.property("avgGrade");
-                expect(result[0]).to.have.property("maxGrade");
-                expect(result[0]).to.have.property("totalStudents");
-            });
-    
-            it("should reject duplicate applykey", async function () {
-                const query = {
-                    WHERE: {},
-                    OPTIONS: {
-                        COLUMNS: ["sections_dept", "avgGrade"]
-                    },
-                    TRANSFORMATIONS: {
-                        GROUP: ["sections_dept"],
-                        APPLY: [
-                            { avgGrade: { AVG: "sections_avg" } },
-                            { avgGrade: { MAX: "sections_avg" } }
-                        ]
-                    }
-                };
-                try {
-                    await facade.performQuery(query);
-                    expect.fail("should have thrown error");
-                } catch (err) {
-                    expect(err).to.be.instanceof(InsightError);
-                }
-            });
-    
-            it("should reject applykey with underscore", async function () {
-                const query = {
-                    WHERE: {},
-                    OPTIONS: {
-                        COLUMNS: ["sections_dept", "avg_grade"]
-                    },
-                    TRANSFORMATIONS: {
-                        GROUP: ["sections_dept"],
-                        APPLY: [{
-                            avg_grade: {
-                                AVG: "sections_avg"
-                            }
-                        }]
-                    }
-                };
-                try {
-                    await facade.performQuery(query);
-                    expect.fail("should have thrown error");
-                } catch (err) {
-                    expect(err).to.be.instanceof(InsightError);
-                }
-            });
-    
-            it("should reject MAX on string field", async function () {
-                const query = {
-                    WHERE: {},
-                    OPTIONS: {
-                        COLUMNS: ["sections_dept", "maxDept"]
-                    },
-                    TRANSFORMATIONS: {
-                        GROUP: ["sections_dept"],
-                        APPLY: [{
-                            maxDept: {
-                                MAX: "sections_dept"
-                            }
-                        }]
-                    }
-                };
-                try {
-                    await facade.performQuery(query);
-                    expect.fail("should have thrown error");
-                } catch (err) {
-                    expect(err).to.be.instanceof(InsightError);
-                }
-            });
-    
-            it("should reject missing GROUP", async function () {
-                const query = {
-                    WHERE: {},
-                    OPTIONS: {
-                        COLUMNS: ["avgGrade"]
-                    },
-                    TRANSFORMATIONS: {
-                        APPLY: [{
-                            avgGrade: {
-                                AVG: "sections_avg"
-                            }
-                        }]
-                    }
-                };
-                try {
-                    await facade.performQuery(query);
-                    expect.fail("should have thrown error");
-                } catch (err) {
-                    expect(err).to.be.instanceof(InsightError);
-                }
-            });
-    
-            it("should reject missing APPLY", async function () {
-                const query = {
-                    WHERE: {},
-                    OPTIONS: {
-                        COLUMNS: ["sections_dept"]
-                    },
-                    TRANSFORMATIONS: {
-                        GROUP: ["sections_dept"]
-                    }
-                };
-                try {
-                    await facade.performQuery(query);
-                    expect.fail("should have thrown error");
-                } catch (err) {
-                    expect(err).to.be.instanceof(InsightError);
-                }
-            });
-        });
-    
-        describe("ORDER - New Format", function () {
-    
-            it("should sort with multiple keys", async function () {
-                const query = {
-                    WHERE: {
-                        GT: { sections_avg: 97 }
-                    },
-                    OPTIONS: {
-                        COLUMNS: ["sections_dept", "sections_avg"],
-                        ORDER: {
-                            dir: "UP",
-                            keys: ["sections_dept", "sections_avg"]
-                        }
-                    }
-                };
-                const result = await facade.performQuery(query);
-                expect(result).to.be.an("array");
-                expect(result.length).to.be.greaterThan(0);
-            });
-    
-            it("should reject invalid direction", async function () {
-                const query = {
-                    WHERE: {},
-                    OPTIONS: {
-                        COLUMNS: ["sections_dept", "sections_avg"],
-                        ORDER: {
-                            dir: "MIDDLE",
-                            keys: ["sections_avg"]
-                        }
-                    }
-                };
-                try {
-                    await facade.performQuery(query);
-                    expect.fail("should have thrown error");
-                } catch (err) {
-                    expect(err).to.be.instanceof(InsightError);
-                }
-            });
-    
-            it("should reject ORDER key not in COLUMNS", async function () {
-                const query = {
-                    WHERE: {},
-                    OPTIONS: {
-                        COLUMNS: ["sections_dept"],
-                        ORDER: {
-                            dir: "UP",
-                            keys: ["sections_avg"]
-                        }
-                    }
-                };
-                try {
-                    await facade.performQuery(query);
-                    expect.fail("should have thrown error");
-                } catch (err) {
-                    expect(err).to.be.instanceof(InsightError);
-                }
-            });
-    
-            it("should reject empty keys array", async function () {
-                const query = {
-                    WHERE: {},
-                    OPTIONS: {
-                        COLUMNS: ["sections_dept"],
-                        ORDER: {
-                            dir: "UP",
-                            keys: []
-                        }
-                    }
-                };
-                try {
-                    await facade.performQuery(query);
-                    expect.fail("should have thrown error");
-                } catch (err) {
-                    expect(err).to.be.instanceof(InsightError);
-                }
-            });
-        });
-    
-    
-        describe("Multiple Dataset Validation", function () {
-            it("should reject query referencing both sections and rooms", async function () {
-                const query = {
-                    WHERE: {},
-                    OPTIONS: {
-                        COLUMNS: ["sections_dept", "rooms_name"]
-                    }
-                };
-                try {
-                    await facade.performQuery(query);
-                    expect.fail("should have thrown error");
-                } catch (err) {
-                    expect(err).to.be.instanceof(InsightError);
-                }
-            });
-    
-            it("should reject transformations with mixed datasets", async function () {
-                const query = {
-                    WHERE: {},
-                    OPTIONS: {
-                        COLUMNS: ["sections_dept", "avgSeats"]
-                    },
-                    TRANSFORMATIONS: {
-                        GROUP: ["sections_dept"],
-                        APPLY: [{
-                            avgSeats: {
-                                AVG: "rooms_seats"
-                            }
-                        }]
-                    }
-                };
-                try {
-                    await facade.performQuery(query);
-                    expect.fail("should have thrown error");
-                } catch (err) {
-                    expect(err).to.be.instanceof(InsightError);
-                }
-            });
-        });
-    
-        describe("Caching and Persistence", function () {
-            it("should persist and load sections dataset across instances", async function () {
-                await clearDisk();
-                const facade1 = new InsightFacade();
-                await facade1.addDataset("test", sections, InsightDatasetKind.Sections);
-                
-                const facade2 = new InsightFacade();
-                const query = {
-                    WHERE: {
-                        GT: { test_avg: 95 }
-                    },
-                    OPTIONS: {
-                        COLUMNS: ["test_dept"]
-                    }
-                };
-                const result = await facade2.performQuery(query);
-                expect(result).to.be.an("array");
-                expect(result.length).to.be.greaterThan(0);
-            });
-    
-            it("should persist and load rooms dataset across instances", async function () {
-                await clearDisk();
-                const facade1 = new InsightFacade();
-                await facade1.addDataset("testrooms", campus, InsightDatasetKind.Rooms);
-                
-                const facade2 = new InsightFacade();
-                const query = {
-                    WHERE: {},
-                    OPTIONS: {
-                        COLUMNS: ["testrooms_name"]
-                    }
-                };
-                const result = await facade2.performQuery(query);
-                expect(result).to.be.an("array");
-            });
-        });
-    });
+	describe("PerformQuery - Checkpoint 2", function () {
+		before(async function () {
+			await clearDisk();
+			facade = new InsightFacade();
+			await facade.addDataset("sections", sections, InsightDatasetKind.Sections);
+			await facade.addDataset("rooms", campus, InsightDatasetKind.Rooms);
+		});
+
+		after(async function () {
+			await clearDisk();
+		});
+
+		describe("TRANSFORMATIONS - GROUP", function () {
+			it("should group by single key", async function () {
+				const query = {
+					WHERE: {},
+					OPTIONS: {
+						COLUMNS: ["sections_dept"],
+					},
+					TRANSFORMATIONS: {
+						GROUP: ["sections_dept"],
+						APPLY: [],
+					},
+				};
+				const result = await facade.performQuery(query);
+				expect(result).to.be.an("array");
+				expect(result.length).to.be.greaterThan(0);
+			});
+
+			it("should group by multiple keys", async function () {
+				const query = {
+					WHERE: {
+						GT: { sections_avg: 90 },
+					},
+					OPTIONS: {
+						COLUMNS: ["sections_dept", "sections_instructor"],
+					},
+					TRANSFORMATIONS: {
+						GROUP: ["sections_dept", "sections_instructor"],
+						APPLY: [],
+					},
+				};
+				const result = await facade.performQuery(query);
+				expect(result).to.be.an("array");
+				expect(result.length).to.be.greaterThan(0);
+			});
+
+			it("should reject if COLUMNS not in GROUP or APPLY", async function () {
+				const query = {
+					WHERE: {},
+					OPTIONS: {
+						COLUMNS: ["sections_dept", "sections_avg"],
+					},
+					TRANSFORMATIONS: {
+						GROUP: ["sections_dept"],
+						APPLY: [],
+					},
+				};
+				try {
+					await facade.performQuery(query);
+					expect.fail("should have thrown error");
+				} catch (err) {
+					expect(err).to.be.instanceof(InsightError);
+				}
+			});
+		});
+
+		describe("TRANSFORMATIONS - APPLY", function () {
+			it("should apply MAX", async function () {
+				const query = {
+					WHERE: {},
+					OPTIONS: {
+						COLUMNS: ["sections_dept", "maxAvg"],
+					},
+					TRANSFORMATIONS: {
+						GROUP: ["sections_dept"],
+						APPLY: [
+							{
+								maxAvg: {
+									MAX: "sections_avg",
+								},
+							},
+						],
+					},
+				};
+				const result = await facade.performQuery(query);
+				expect(result).to.be.an("array");
+				expect(result[0]).to.have.property("maxAvg");
+				expect(result[0].maxAvg).to.be.a("number");
+			});
+
+			it("should apply MIN", async function () {
+				const query = {
+					WHERE: {},
+					OPTIONS: {
+						COLUMNS: ["sections_dept", "minAvg"],
+					},
+					TRANSFORMATIONS: {
+						GROUP: ["sections_dept"],
+						APPLY: [
+							{
+								minAvg: {
+									MIN: "sections_avg",
+								},
+							},
+						],
+					},
+				};
+				const result = await facade.performQuery(query);
+				expect(result).to.be.an("array");
+				expect(result[0]).to.have.property("minAvg");
+				expect(result[0].minAvg).to.be.a("number");
+			});
+
+			it("should apply AVG with decimal precision", async function () {
+				const query = {
+					WHERE: {},
+					OPTIONS: {
+						COLUMNS: ["sections_dept", "avgGrade"],
+					},
+					TRANSFORMATIONS: {
+						GROUP: ["sections_dept"],
+						APPLY: [
+							{
+								avgGrade: {
+									AVG: "sections_avg",
+								},
+							},
+						],
+					},
+				};
+				const result = await facade.performQuery(query);
+				expect(result).to.be.an("array");
+				expect(result[0]).to.have.property("avgGrade");
+				const avgValue = result[0].avgGrade as number;
+				const decimalPlaces = (avgValue.toString().split(".")[1] || "").length;
+				expect(decimalPlaces).to.be.at.most(2);
+			});
+
+			it("should apply SUM", async function () {
+				const query = {
+					WHERE: {},
+					OPTIONS: {
+						COLUMNS: ["sections_dept", "totalPass"],
+					},
+					TRANSFORMATIONS: {
+						GROUP: ["sections_dept"],
+						APPLY: [
+							{
+								totalPass: {
+									SUM: "sections_pass",
+								},
+							},
+						],
+					},
+				};
+				const result = await facade.performQuery(query);
+				expect(result).to.be.an("array");
+				expect(result[0]).to.have.property("totalPass");
+				expect(result[0].totalPass).to.be.a("number");
+			});
+
+			it("should apply COUNT", async function () {
+				const query = {
+					WHERE: {},
+					OPTIONS: {
+						COLUMNS: ["sections_dept", "numInstructors"],
+					},
+					TRANSFORMATIONS: {
+						GROUP: ["sections_dept"],
+						APPLY: [
+							{
+								numInstructors: {
+									COUNT: "sections_instructor",
+								},
+							},
+						],
+					},
+				};
+				const result = await facade.performQuery(query);
+				expect(result).to.be.an("array");
+				expect(result[0]).to.have.property("numInstructors");
+				expect(result[0].numInstructors).to.be.a("number");
+			});
+
+			it("should handle multiple APPLY rules", async function () {
+				const query = {
+					WHERE: {},
+					OPTIONS: {
+						COLUMNS: ["sections_dept", "avgGrade", "maxGrade", "totalStudents"],
+					},
+					TRANSFORMATIONS: {
+						GROUP: ["sections_dept"],
+						APPLY: [
+							{ avgGrade: { AVG: "sections_avg" } },
+							{ maxGrade: { MAX: "sections_avg" } },
+							{ totalStudents: { SUM: "sections_pass" } },
+						],
+					},
+				};
+				const result = await facade.performQuery(query);
+				expect(result).to.be.an("array");
+				expect(result[0]).to.have.property("avgGrade");
+				expect(result[0]).to.have.property("maxGrade");
+				expect(result[0]).to.have.property("totalStudents");
+			});
+
+			it("should reject duplicate applykey", async function () {
+				const query = {
+					WHERE: {},
+					OPTIONS: {
+						COLUMNS: ["sections_dept", "avgGrade"],
+					},
+					TRANSFORMATIONS: {
+						GROUP: ["sections_dept"],
+						APPLY: [{ avgGrade: { AVG: "sections_avg" } }, { avgGrade: { MAX: "sections_avg" } }],
+					},
+				};
+				try {
+					await facade.performQuery(query);
+					expect.fail("should have thrown error");
+				} catch (err) {
+					expect(err).to.be.instanceof(InsightError);
+				}
+			});
+
+			it("should reject applykey with underscore", async function () {
+				const query = {
+					WHERE: {},
+					OPTIONS: {
+						COLUMNS: ["sections_dept", "avg_grade"],
+					},
+					TRANSFORMATIONS: {
+						GROUP: ["sections_dept"],
+						APPLY: [
+							{
+								avg_grade: {
+									AVG: "sections_avg",
+								},
+							},
+						],
+					},
+				};
+				try {
+					await facade.performQuery(query);
+					expect.fail("should have thrown error");
+				} catch (err) {
+					expect(err).to.be.instanceof(InsightError);
+				}
+			});
+
+			it("should reject MAX on string field", async function () {
+				const query = {
+					WHERE: {},
+					OPTIONS: {
+						COLUMNS: ["sections_dept", "maxDept"],
+					},
+					TRANSFORMATIONS: {
+						GROUP: ["sections_dept"],
+						APPLY: [
+							{
+								maxDept: {
+									MAX: "sections_dept",
+								},
+							},
+						],
+					},
+				};
+				try {
+					await facade.performQuery(query);
+					expect.fail("should have thrown error");
+				} catch (err) {
+					expect(err).to.be.instanceof(InsightError);
+				}
+			});
+
+			it("should reject missing GROUP", async function () {
+				const query = {
+					WHERE: {},
+					OPTIONS: {
+						COLUMNS: ["avgGrade"],
+					},
+					TRANSFORMATIONS: {
+						APPLY: [
+							{
+								avgGrade: {
+									AVG: "sections_avg",
+								},
+							},
+						],
+					},
+				};
+				try {
+					await facade.performQuery(query);
+					expect.fail("should have thrown error");
+				} catch (err) {
+					expect(err).to.be.instanceof(InsightError);
+				}
+			});
+
+			it("should reject missing APPLY", async function () {
+				const query = {
+					WHERE: {},
+					OPTIONS: {
+						COLUMNS: ["sections_dept"],
+					},
+					TRANSFORMATIONS: {
+						GROUP: ["sections_dept"],
+					},
+				};
+				try {
+					await facade.performQuery(query);
+					expect.fail("should have thrown error");
+				} catch (err) {
+					expect(err).to.be.instanceof(InsightError);
+				}
+			});
+		});
+
+		describe("ORDER - New Format", function () {
+			it("should sort with multiple keys", async function () {
+				const query = {
+					WHERE: {
+						GT: { sections_avg: 97 },
+					},
+					OPTIONS: {
+						COLUMNS: ["sections_dept", "sections_avg"],
+						ORDER: {
+							dir: "UP",
+							keys: ["sections_dept", "sections_avg"],
+						},
+					},
+				};
+				const result = await facade.performQuery(query);
+				expect(result).to.be.an("array");
+				expect(result.length).to.be.greaterThan(0);
+			});
+
+			it("should reject invalid direction", async function () {
+				const query = {
+					WHERE: {},
+					OPTIONS: {
+						COLUMNS: ["sections_dept", "sections_avg"],
+						ORDER: {
+							dir: "MIDDLE",
+							keys: ["sections_avg"],
+						},
+					},
+				};
+				try {
+					await facade.performQuery(query);
+					expect.fail("should have thrown error");
+				} catch (err) {
+					expect(err).to.be.instanceof(InsightError);
+				}
+			});
+
+			it("should reject ORDER key not in COLUMNS", async function () {
+				const query = {
+					WHERE: {},
+					OPTIONS: {
+						COLUMNS: ["sections_dept"],
+						ORDER: {
+							dir: "UP",
+							keys: ["sections_avg"],
+						},
+					},
+				};
+				try {
+					await facade.performQuery(query);
+					expect.fail("should have thrown error");
+				} catch (err) {
+					expect(err).to.be.instanceof(InsightError);
+				}
+			});
+
+			it("should reject empty keys array", async function () {
+				const query = {
+					WHERE: {},
+					OPTIONS: {
+						COLUMNS: ["sections_dept"],
+						ORDER: {
+							dir: "UP",
+							keys: [],
+						},
+					},
+				};
+				try {
+					await facade.performQuery(query);
+					expect.fail("should have thrown error");
+				} catch (err) {
+					expect(err).to.be.instanceof(InsightError);
+				}
+			});
+		});
+
+		describe("Multiple Dataset Validation", function () {
+			it("should reject query referencing both sections and rooms", async function () {
+				const query = {
+					WHERE: {},
+					OPTIONS: {
+						COLUMNS: ["sections_dept", "rooms_name"],
+					},
+				};
+				try {
+					await facade.performQuery(query);
+					expect.fail("should have thrown error");
+				} catch (err) {
+					expect(err).to.be.instanceof(InsightError);
+				}
+			});
+
+			it("should reject transformations with mixed datasets", async function () {
+				const query = {
+					WHERE: {},
+					OPTIONS: {
+						COLUMNS: ["sections_dept", "avgSeats"],
+					},
+					TRANSFORMATIONS: {
+						GROUP: ["sections_dept"],
+						APPLY: [
+							{
+								avgSeats: {
+									AVG: "rooms_seats",
+								},
+							},
+						],
+					},
+				};
+				try {
+					await facade.performQuery(query);
+					expect.fail("should have thrown error");
+				} catch (err) {
+					expect(err).to.be.instanceof(InsightError);
+				}
+			});
+		});
+
+		describe("Caching and Persistence", function () {
+			it("should persist and load sections dataset across instances", async function () {
+				await clearDisk();
+				const facade1 = new InsightFacade();
+				await facade1.addDataset("test", sections, InsightDatasetKind.Sections);
+
+				const facade2 = new InsightFacade();
+				const query = {
+					WHERE: {
+						GT: { test_avg: 95 },
+					},
+					OPTIONS: {
+						COLUMNS: ["test_dept"],
+					},
+				};
+				const result = await facade2.performQuery(query);
+				expect(result).to.be.an("array");
+				expect(result.length).to.be.greaterThan(0);
+			});
+
+			it("should persist and load rooms dataset across instances", async function () {
+				await clearDisk();
+				const facade1 = new InsightFacade();
+				await facade1.addDataset("testrooms", campus, InsightDatasetKind.Rooms);
+
+				const facade2 = new InsightFacade();
+				const query = {
+					WHERE: {},
+					OPTIONS: {
+						COLUMNS: ["testrooms_name"],
+					},
+				};
+				const result = await facade2.performQuery(query);
+				expect(result).to.be.an("array");
+			});
+		});
+	});
 });
