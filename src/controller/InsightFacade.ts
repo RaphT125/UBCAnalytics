@@ -13,7 +13,7 @@ import { SectionParser } from "./SectionParser";
 import type { Room } from "./RoomParser";
 import type { Section } from "./SectionParser";
 import Decimal from "decimal.js";
-import RoomParser from "./RoomParser";
+import { RoomParser } from "./RoomParser";
 
 // interface Section {
 // 	id: string;
