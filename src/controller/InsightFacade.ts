@@ -10,10 +10,10 @@ import {
 import fsPromises from "fs-extra";
 import { Parsers } from "./Parsers";
 import { SectionParser } from "./SectionParser";
-import { RoomParser } from "./RoomParser";
 import type { Room } from "./RoomParser";
 import type { Section } from "./SectionParser";
 import Decimal from "decimal.js";
+import RoomParser from "./RoomParser";
 
 // interface Section {
 // 	id: string;
@@ -652,7 +652,7 @@ export default class InsightFacade implements IInsightFacade {
 				list.push({ id: id, kind: InsightDatasetKind.Rooms, numRows: file.length });
 			}
 		} catch (e) {}
-		console.log(list);
+
 		return list;
 	}
 
@@ -756,6 +756,10 @@ export default class InsightFacade implements IInsightFacade {
 				return Math.min(...values);
 
 			case "AVG":
+				if (values.length === 0) {
+					return 0;
+				}
+
 				let total = new Decimal(0);
 
 				for (const val of values) {
