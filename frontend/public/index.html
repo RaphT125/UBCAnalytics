@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InsightUBC - Section Insights</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>InsightUBC - Section Insights</h1>
+            <p>Manage and visualize UBC course section datasets</p>
+        </header>
+
+        <section class="card">
+            <h2>Add Dataset</h2>
+            <div class="form-group">
+                <label for="datasetId">Dataset ID:</label>
+                <input type="text" id="datasetId" placeholder="e.g., ubc-sections" />
+            </div>
+            <div class="form-group">
+                <label for="datasetFile">Upload ZIP file:</label>
+                <input type="file" id="datasetFile" accept=".zip" />
+            </div>
+            <div class="form-group">
+                <label for="datasetKind">Dataset Kind:</label>
+                <select id="datasetKind">
+                    <option value="Sections">Sections</option>
+                    <option value="Rooms">Rooms</option>
+                </select>
+            </div>
+            <button id="addDatasetBtn" class="btn btn-primary">Add Dataset</button>
+            <div id="addFeedback" class="feedback"></div>
+        </section>
+
+        <section class="card">
+            <h2>Current Datasets</h2>
+            <div id="datasetsList" class="datasets-list">
+                <p class="loading">Loading datasets...</p>
+            </div>
+        </section>
+
+        <section class="card insights-section">
+            <h2>Dataset Insights</h2>
+            <p class="info-text">Select a dataset above to view insights</p>
+            
+            <div id="insightsContainer" class="insights-container" style="display: none;">
+                <h3 id="selectedDatasetTitle"></h3>
+                
+                <div class="insight-card">
+                    <h4>Insight 1: Average Grade Distribution by Department</h4>
+                    <canvas id="chart1"></canvas>
+                </div>
+
+                <div class="insight-card">
+                    <h4>Insight 2: Pass vs Fail Rates (Top 10 Courses)</h4>
+                    <canvas id="chart2"></canvas>
+                </div>
+
+                <div class="insight-card">
+                    <h4>Insight 3: Average Grades Over Years</h4>
+                    <canvas id="chart3"></canvas>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
