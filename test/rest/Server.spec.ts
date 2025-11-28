@@ -2,14 +2,15 @@ import { expect } from "chai";
 import request from "supertest";
 import Server from "../../src//rest/Server";
 import { clearDisk } from "../TestUtil";
+import * as fs from "fs-extra";
 describe("IntegrationTesting", function () {
 	let localURL = "http://localhost:4321";
 	let server: Server;
-	let buffer: string;
-	let invalidRoot: string;
+	let buffer: Buffer;
+	let invalidRoot: Buffer;
 	before(async function () {
-		buffer = "test/resources/archives/pair.zip";
-		invalidRoot = "test/resources/archives/invalidroot2.zip";
+		buffer = await fs.readFile("test/resources/archives/pair.zip");
+		invalidRoot = await fs.readFile("test/resources/archives/invalidroot2.zip");
 		this.server = new Server(4321);
 		await this.server.start();
 		await clearDisk();
@@ -116,12 +117,22 @@ describe("IntegrationTesting", function () {
 			const query = {
 				WHERE: {
 					GT: {
-						sections_avg: 97,
+						[`sections_year`]: 1900,
 					},
 				},
 				OPTIONS: {
-					COLUMNS: ["sections_dept", "sections_avg"],
-					ORDER: "sections_avg",
+					COLUMNS: [`sections_year`, "avgGrade"],
+					ORDER: `sections_year`,
+				},
+				TRANSFORMATIONS: {
+					GROUP: [`sections_year`],
+					APPLY: [
+						{
+							avgGrade: {
+								AVG: `sections_avg`,
+							},
+						},
+					],
 				},
 			};
 			const temp = await request(localURL).post("/dataset/").set("Content-Type", "application/json").send(query);
