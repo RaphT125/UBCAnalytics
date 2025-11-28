@@ -58,7 +58,6 @@ async function addDataset() {
     const id = document.getElementById('datasetId').value.trim();
     const fileInput = document.getElementById('datasetFile');
     const kind = document.getElementById('datasetKind').value;
-    const feedbackEl = document.getElementById('addFeedback');
     
     if (!id) {
         showFeedback('addFeedback', 'Please enter a dataset ID', 'error');
@@ -86,24 +85,21 @@ async function addDataset() {
         showFeedback('addFeedback', 'Adding dataset...', 'success');
         
         const arrayBuffer = await file.arrayBuffer();
-        const blob = new Blob([arrayBuffer]);
-        const formData = new FormData();
-        formData.append('file', file);
-        const tempPath = `./temp/${file.name}`;
         
         const response = await fetch(`${API_BASE_URL}/dataset/${id}/${kind}`, {
             method: 'PUT',
-            body: tempPath
+            headers: {
+                'Content-Type': 'application/octet-stream'
+            },
+            body: arrayBuffer
         });
         
         const data = await response.json();
         
         if (response.ok) {
             showFeedback('addFeedback', `Dataset "${id}" added successfully!`, 'success');
-            
             document.getElementById('datasetId').value = '';
             document.getElementById('datasetFile').value = '';
-            
             await loadDatasets();
         } else {
             showFeedback('addFeedback', `Error: ${data.error}`, 'error');

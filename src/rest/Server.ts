@@ -26,19 +26,34 @@ export default class Server {
 
 	//used gpt the following code
 	private addRoute() {
-		this.express.put("/dataset/:id/:kind", async (req, res) => {
-			const id = req.params.id;
-			try {
-				const kind = this.kindCoverter(req.params.kind);
-				const buffer = await fs.readFile(req.body.toString());
-				const content = buffer.toString("base64");
-				const response = await this.insightFacade.addDataset(id, content, kind);
-				res.status(200).json({ response });
-			} catch (err) {
-				res.status(400).json({ error: String(err) });
-			}
-		});
-	}
+        this.express.put("/dataset/:id/:kind", async (req, res) => {
+            const id = req.params.id;
+            try {
+                const kind = this.kindCoverter(req.params.kind);
+                
+                console.log("req.body type:", typeof req.body);
+                console.log("Is Buffer?", Buffer.isBuffer(req.body));
+                console.log("req.body:", req.body);
+                
+                let content: string;
+                
+                if (Buffer.isBuffer(req.body)) {
+                    content = req.body.toString("base64");
+                } else if (typeof req.body === "string") {
+                    const buffer = await fs.readFile(req.body);
+                    content = buffer.toString("base64");
+                } else {
+                    throw new Error("Invalid request body format");
+                }
+                
+                const response = await this.insightFacade.addDataset(id, content, kind);
+                res.status(200).json({ response });
+            } catch (err) {
+                res.status(400).json({ error: String(err) });
+            }
+        });
+    }
+
 	private kindCoverter(kind: string): InsightDatasetKind {
 		if (kind === "Sections") {
 			return InsightDatasetKind.Sections;
