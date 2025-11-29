@@ -7,7 +7,8 @@ For information about the project, autotest, and the checkpoints, see the course
 
 ## Starting the server 
 1. To start server 'yarn start'
-2. to start the webpage/frontend, cd  into frontend/public, and then run the command 'py -m http.server 8080' . 
+2. to start the webpage/frontend, cd  into frontend/public, and then run the command 'py -m http.server 8080'. 
+3. To open webpage, type in http://localhost:8080/ on browser 
 
 ## Configuring your environment
 
